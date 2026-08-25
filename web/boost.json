@@ -1,0 +1,12 @@
+{
+    "agents": [
+        "antigravity"
+    ],
+    "cloud": true,
+    "packages": [
+        "filament/filament"
+    ],
+    "skills": [
+        "laravel-best-practices"
+    ]
+}
