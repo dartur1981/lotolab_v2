@@ -39,9 +39,14 @@
                                 @for($i = 1; $i <= 25; $i++)
                                     @php
                                         $isAcumulado = in_array($i, $fileira['acumulado']);
+                                        $isSorteioAtual = in_array($i, $fileira['dezenas_sorteio']);
                                     @endphp
                                     <td style="padding: 0.5rem 0.25rem;">
-                                        @if($isAcumulado)
+                                        @if($isSorteioAtual)
+                                            <div style="margin: 0 auto; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background-color: #3b82f6; color: #ffffff; border-radius: 9999px; font-weight: 800; font-size: 0.8rem; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.2);">
+                                                {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
+                                            </div>
+                                        @elseif($isAcumulado)
                                             <div style="margin: 0 auto; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background-color: #10b981; color: #ffffff; border-radius: 9999px; font-weight: 800; font-size: 0.8rem; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3), 0 2px 4px -1px rgba(16, 185, 129, 0.2);">
                                                 {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
                                             </div>
@@ -61,8 +66,12 @@
             <div style="display: flex; flex-wrap: wrap; gap: 2rem; align-items: center; margin-top: 1.5rem; border-top: 1px dashed var(--fi-border); padding-top: 1.5rem; font-size: 0.875rem;">
                 <span style="font-weight: 700; color: var(--fi-text); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem;">Legenda:</span>
                 <div style="display: flex; align-items: center; gap: 0.75rem; color: var(--fi-text-subdued);">
+                    <div style="background-color: #3b82f6; color: white; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-weight: 800; font-size: 0.75rem; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">01</div>
+                    <span style="font-weight: 500;">Sorteada no Concurso</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; color: var(--fi-text-subdued);">
                     <div style="background-color: #10b981; color: white; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-weight: 800; font-size: 0.75rem; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">01</div>
-                    <span style="font-weight: 500;">Sorteada (Acumulado)</span>
+                    <span style="font-weight: 500;">Sorteada Anteriormente</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.75rem; color: var(--fi-text-subdued);">
                     <div style="color: var(--fi-text-subdued); opacity: 0.4; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-size: 0.75rem; font-weight: 500;">01</div>
