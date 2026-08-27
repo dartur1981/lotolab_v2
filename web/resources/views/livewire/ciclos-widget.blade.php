@@ -40,9 +40,14 @@
                                     @php
                                         $isAcumulado = in_array($i, $fileira['acumulado']);
                                         $isSorteioAtual = in_array($i, $fileira['dezenas_sorteio']);
+                                        $isRepetida = $isSorteioAtual && in_array($i, $fileira['dezenas_anteriores'] ?? []);
                                     @endphp
                                     <td style="padding: 0.5rem 0.25rem;">
-                                        @if($isSorteioAtual)
+                                        @if($isRepetida)
+                                            <div style="margin: 0 auto; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background-color: #f97316; color: #ffffff; border-radius: 9999px; font-weight: 800; font-size: 0.8rem; box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.3), 0 2px 4px -1px rgba(249, 115, 22, 0.2);">
+                                                {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
+                                            </div>
+                                        @elseif($isSorteioAtual)
                                             <div style="margin: 0 auto; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background-color: #3b82f6; color: #ffffff; border-radius: 9999px; font-weight: 800; font-size: 0.8rem; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.2);">
                                                 {{ str_pad($i, 2, '0', STR_PAD_LEFT) }}
                                             </div>
@@ -68,6 +73,10 @@
                 <div style="display: flex; align-items: center; gap: 0.75rem; color: var(--fi-text-subdued);">
                     <div style="background-color: #3b82f6; color: white; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-weight: 800; font-size: 0.75rem; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);">01</div>
                     <span style="font-weight: 500;">Sorteada no Concurso</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.75rem; color: var(--fi-text-subdued);">
+                    <div style="background-color: #f97316; color: white; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-weight: 800; font-size: 0.75rem; box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);">01</div>
+                    <span style="font-weight: 500;">Repetida do Concurso Anterior</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.75rem; color: var(--fi-text-subdued);">
                     <div style="background-color: #10b981; color: white; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; font-weight: 800; font-size: 0.75rem; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">01</div>

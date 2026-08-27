@@ -82,6 +82,25 @@ class CiclosWidget extends Widget implements HasForms
             $matrizCronologica = array_reverse($dados['matriz']);
             
             $acumuladoGlobal = [];
+            $dezenasAnteriores = [];
+
+            // Tentativa de obter as dezenas do concurso anterior ao primeiro do ciclo
+            $primeiroConcurso = $matrizCronologica[0]['concurso'] ?? null;
+            if ($primeiroConcurso) {
+                $sorteioAnterior = DB::connection('analytics_lotofacil')
+                    ->table('resultados_lotofacil')
+                    ->where('concurso', $primeiroConcurso - 1)
+                    ->first();
+                
+                if ($sorteioAnterior) {
+                    for ($i = 1; $i <= 15; $i++) {
+                        $col = 'bola_' . $i;
+                        if (isset($sorteioAnterior->$col)) {
+                            $dezenasAnteriores[] = $sorteioAnterior->$col;
+                        }
+                    }
+                }
+            }
             
             foreach ($matrizCronologica as $sorteio) {
                 $dezenasDoSorteio = $sorteio['dezenas'] ?? [];
@@ -93,8 +112,12 @@ class CiclosWidget extends Widget implements HasForms
                 $this->fileiras[] = [
                     'concurso' => $sorteio['concurso'],
                     'acumulado' => $acumuladoGlobal,
-                    'dezenas_sorteio' => $dezenasDoSorteio
+                    'dezenas_sorteio' => $dezenasDoSorteio,
+                    'dezenas_anteriores' => $dezenasAnteriores
                 ];
+                
+                // Atualiza dezenasAnteriores para o próximo concurso do loop
+                $dezenasAnteriores = $dezenasDoSorteio;
             }
         }
     }
