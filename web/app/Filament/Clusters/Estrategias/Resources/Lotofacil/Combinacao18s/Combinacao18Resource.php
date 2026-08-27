@@ -18,6 +18,8 @@ class Combinacao18Resource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-group';
 
+    protected static bool $isScopedToTenant = false;
+
     protected static ?string $cluster = EstrategiasCluster::class;
 
     protected static ?string $modelLabel = 'Combinação de 18 Dezenas';
