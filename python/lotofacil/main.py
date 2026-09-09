@@ -17,7 +17,7 @@ from sqlalchemy.dialects.mysql import insert
 import math
 import json
 
-from lotofacil.database import engine, engine_app, get_db, Base
+from lotofacil.database import engine, engine_app, get_db, Base, init_databases
 from lotofacil import models
 from lotofacil.calculadora_ciclos import calcular_ciclos_lotofacil, Concurso as ConcursoCalc
 from lotofacil.calculadora_combinacoes import processar_combinacoes_background, log_msg
@@ -26,11 +26,26 @@ from lotofacil.gerador_fechamentos import gerar_jogos_fechamento
 from lotofacil.analisador_estrategias import sincronizar_estatisticas_avancadas
 
 try:
+    init_databases()
     Base.metadata.create_all(bind=engine)
+    print("Tabelas do Python verificadas/criadas com sucesso!")
 except Exception as e:
     print(f"Aviso: Banco de dados ainda não disponível na inicialização ({e}). A API continuará rodando.")
 
 app = FastAPI(title="Lotolab Python API", version="1.0.0")
+
+@app.get("/setup-tables")
+@app.post("/setup-tables")
+def setup_tables():
+    """Endpoint para forçar a criação/atualização de todas as tabelas analíticas no banco"""
+    try:
+        init_databases()
+        Base.metadata.create_all(bind=engine)
+        from sqlalchemy import inspect
+        tables = inspect(engine).get_table_names()
+        return {"status": "success", "message": "Tabelas criadas/verificadas com sucesso", "tables": tables}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 class ImportRequest(BaseModel):
     path: str

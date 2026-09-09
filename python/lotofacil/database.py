@@ -19,6 +19,18 @@ SessionLocalApp = sessionmaker(autocommit=False, autoflush=False, bind=engine_ap
 
 Base = declarative_base()
 
+def init_databases():
+    from sqlalchemy import text
+    try:
+        root_url = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}"
+        root_engine = create_engine(root_url, echo=False)
+        with root_engine.connect() as conn:
+            conn.execute(text(f"CREATE DATABASE IF NOT EXISTS `{DB_NAME_ANALYTICS}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"))
+            conn.execute(text(f"CREATE DATABASE IF NOT EXISTS `{DB_NAME_APP}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"))
+            conn.commit()
+    except Exception as e:
+        print(f"Aviso ao inicializar bancos: {e}")
+
 def get_db():
     db = SessionLocal()
     try:
