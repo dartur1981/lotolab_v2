@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: docker/python/Dockerfile
-    container_name: lotolab-python
+    container_name: lotolab-python-v2
     restart: unless-stopped
     env_file:
       - ./web/.env
@@ -24,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: lotolab-app
+    container_name: lotolab-app-v2
     restart: unless-stopped
     env_file:
       - ./web/.env
@@ -46,7 +46,7 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: lotolab-nginx
+    container_name: lotolab-nginx-v2
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-8081}:80"
@@ -62,7 +62,7 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: lotolab-worker
+    container_name: lotolab-worker-v2
     restart: unless-stopped
     command: php artisan queue:work --tries=3 --timeout=300
     env_file:
