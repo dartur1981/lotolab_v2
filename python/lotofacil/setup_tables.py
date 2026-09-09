@@ -8,42 +8,50 @@ if _current_dir not in sys.path:
 if _parent_dir not in sys.path:
     sys.path.insert(1, _parent_dir)
 
-from lotofacil.database import (
-    DB_HOST, DB_PORT, DB_USER, DB_NAME_ANALYTICS,
-    engine, Base, init_databases
-)
-from lotofacil import models
-from sqlalchemy import inspect
+try:
+    from lotofacil.database import (
+        DB_HOST, DB_PORT, DB_USER, DB_NAME_ANALYTICS, DB_NAME_APP,
+        engine, Base, init_databases
+    )
+    from lotofacil import models
+    from sqlalchemy import inspect
+except Exception as err:
+    print("=" * 60)
+    print("ERRO DE CONFIGURAÇÃO DE BANCO:")
+    print(err)
+    print("=" * 60)
+    sys.exit(1)
 
 print("=" * 60)
-print("INICIANDO SETUP DAS TABELAS ANALITICAS (PYTHON)")
+print("SETUP DE TABELAS ANALÍTICAS (PYTHON)")
 print(f"Host: {DB_HOST}:{DB_PORT}")
-print(f"Usuario: {DB_USER}")
-print(f"Banco Analytics: {DB_NAME_ANALYTICS}")
+print(f"Usuário: {DB_USER}")
+print(f"Banco Analítico: {DB_NAME_ANALYTICS}")
+print(f"Banco da Aplicação: {DB_NAME_APP}")
 print("=" * 60)
 
 try:
-    print("[1/3] Verificando / criando bancos de dados...")
+    print("[1/3] Garantindo existência dos bancos de dados no MySQL...")
     init_databases()
-    print("      Bancos verificados com sucesso!")
+    print("      Bancos verificados/criados com sucesso!")
 
-    print("[2/3] Criando tabelas do modelo SQLAlchemy...")
+    print("[2/3] Criando/sincronizando tabelas do modelo SQLAlchemy...")
     Base.metadata.create_all(bind=engine)
-    print("      Tabelas criadas/sincronizadas com sucesso!")
+    print("      Tabelas criadas com sucesso!")
 
-    print("[3/3] Inspecionando tabelas existentes no banco:")
+    print("[3/3] Tabelas ativas no banco analítico:")
     inspector = inspect(engine)
     tables = inspector.get_table_names()
     for t in tables:
         print(f"      -> {t}")
 
     print("=" * 60)
-    print(f"CONCLUIDO COM SUCESSO! Total de tabelas: {len(tables)}")
+    print(f"SUCESSO! Total de tabelas analíticas: {len(tables)}")
     print("=" * 60)
 
 except Exception as e:
     print("=" * 60)
-    print(f"ERRO CRITICO AO CRIAR TABELAS: {e}")
+    print(f"FALHA AO CONECTAR OU CRIAR TABELAS: {e}")
     print("=" * 60)
     import traceback
     traceback.print_exc()

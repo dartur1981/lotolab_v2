@@ -17,6 +17,10 @@ COPY python/ /app/
 
 EXPOSE 5000
 
-ENV PYTHONUNBUFFERED=1
+# Copia script de entrypoint com auto-setup do banco
+COPY docker/python/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/entrypoint.sh \
+    && chmod +x /usr/local/bin/entrypoint.sh
 
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["uvicorn", "lotofacil.main:app", "--host", "0.0.0.0", "--port", "5000"]
