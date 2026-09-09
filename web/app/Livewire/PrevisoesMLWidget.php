@@ -23,7 +23,8 @@ class PrevisoesMLWidget extends Widget
     public function carregarPrevisoes()
     {
         try {
-            $response = Http::timeout(10)->get('http://127.0.0.1:5000/prever-sorteio');
+            $pythonUrl = rtrim(config('services.python_api.url', 'http://127.0.0.1:5000'), '/');
+            $response = Http::timeout(10)->get("{$pythonUrl}/prever-sorteio");
             if ($response->successful()) {
                 $this->previsoes = $response->json('previsoes') ?? [];
                 $this->erro = false;

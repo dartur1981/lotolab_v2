@@ -43,7 +43,8 @@ class LotofacilFechamentoService
 
         try {
             // Envia a requisição para a API Python na porta 5000 (onde a lógica bruta agora reside)
-            $response = \Illuminate\Support\Facades\Http::timeout(120)->post('http://127.0.0.1:5000/gerar-fechamento', [
+            $pythonUrl = rtrim(config('services.python_api.url', 'http://127.0.0.1:5000'), '/');
+            $response = \Illuminate\Support\Facades\Http::timeout(120)->post("{$pythonUrl}/gerar-fechamento", [
                 'bolao_id' => $bolaoId,
                 'fechamento_id' => $fechamento->id,
                 'quantidade_jogos' => $quantidadeJogos,

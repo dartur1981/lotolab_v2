@@ -60,3 +60,4 @@ class BotLogViewerWidget extends Widget
         return parent::render();
     }
 }
+

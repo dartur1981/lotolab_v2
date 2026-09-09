@@ -13,7 +13,7 @@ class LotofacilBotService
 
     public function __construct()
     {
-        $this->scriptPath = base_path('../python/bot_lotofacil.py');
+        $this->scriptPath = base_path('../python/lotofacil/bot_lotofacil.py');
         $venvPython = base_path('../python/.venv/Scripts/python.exe');
         if (file_exists($venvPython)) {
             $this->pythonPath = $venvPython;

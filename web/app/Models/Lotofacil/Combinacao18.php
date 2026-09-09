@@ -14,6 +14,8 @@ class Combinacao18 extends Model
     protected $fillable = [
         'dezenas', 'pares', 'impares', 'primos', 'fibonacci', 
         'moldura', 'miolo', 'soma', 
-        'acertos_15', 'acertos_14', 'acertos_13', 'acertos_12', 'acertos_11'
+        'score', 'repetidas_ant1', 'repetidas_ant2', 'repetidas_ant3',
+        'acertos_15', 'acertos_14', 'acertos_13', 'acertos_12', 'acertos_11',
+        'historico_15', 'historico_14', 'historico_13', 'historico_12', 'historico_11'
     ];
 }

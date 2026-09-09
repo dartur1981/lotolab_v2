@@ -80,7 +80,8 @@ class ImportarResultados extends Page implements HasForms
             $path = base_path('../data/' . $fileName);
             
             try {
-                $response = Http::timeout(300)->post('http://127.0.0.1:5000/importar-historico', [
+                $pythonUrl = rtrim(config('services.python_api.url', 'http://127.0.0.1:5000'), '/');
+                $response = Http::timeout(300)->post("{$pythonUrl}/importar-historico", [
                     'path' => $path
                 ]);
                 

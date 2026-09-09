@@ -9,7 +9,7 @@ use App\Models\Lotofacil\LotofacilFechamentoJogo;
 use App\Services\LotofacilBotService;
 use Illuminate\Support\Facades\Log;
 
-#[Signature('bot:run {action} {--ids=} {--lidos=}')]
+#[Signature('bot:run {action} {--ids=} {--lidos=} {--model=lotofacil}')]
 #[Description('Executa o bot do ADB em background')]
 class RunBotCommand extends Command
 {
@@ -17,6 +17,7 @@ class RunBotCommand extends Command
     {
         $action = $this->argument('action');
         $idsStr = $this->option('ids');
+        $modelType = $this->option('model') ?: 'lotofacil';
         
         try {
             if ($action === 'lancar') {
@@ -26,7 +27,11 @@ class RunBotCommand extends Command
                 }
                 
                 $ids = explode(',', $idsStr);
-                $jogosRecords = LotofacilFechamentoJogo::whereIn('id', $ids)->get();
+                if ($modelType === 'estrategia') {
+                    $jogosRecords = \App\Models\Lotofacil\EstrategiaFechamentoJogo::whereIn('id', $ids)->get();
+                } else {
+                    $jogosRecords = LotofacilFechamentoJogo::whereIn('id', $ids)->get();
+                }
                 
                 $jogosParaLancar = [];
                 foreach ($jogosRecords as $record) {

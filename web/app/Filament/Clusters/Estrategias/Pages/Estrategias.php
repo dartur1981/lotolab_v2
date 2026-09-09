@@ -15,6 +15,7 @@ class Estrategias extends Page
     protected static ?string $cluster = \App\Filament\Clusters\Estrategias\EstrategiasCluster::class;
     protected ?string $heading = 'Visão Geral das Estratégias';
     protected static ?string $navigationLabel = 'Visão Geral';
+    protected static ?int $navigationSort = 1;
     
     protected string $view = 'filament.app.pages.estrategias';
 
@@ -41,7 +42,8 @@ class Estrategias extends Page
                 ->color('success')
                 ->action(function () {
                     try {
-                        $response = Http::timeout(120)->post('http://127.0.0.1:5000/treinar-modelo');
+                        $pythonUrl = rtrim(config('services.python_api.url', 'http://127.0.0.1:5000'), '/');
+                        $response = Http::timeout(120)->post("{$pythonUrl}/treinar-modelo");
                         if ($response->successful()) {
                             $acc = $response->json('acuracia');
                             Notification::make()
@@ -67,7 +69,8 @@ class Estrategias extends Page
                 ->color('primary')
                 ->action(function () {
                     try {
-                        $response = Http::timeout(120)->post('http://127.0.0.1:5000/atualizar-estrategias');
+                        $pythonUrl = rtrim(config('services.python_api.url', 'http://127.0.0.1:5000'), '/');
+                        $response = Http::timeout(120)->post("{$pythonUrl}/atualizar-estrategias");
                         
                         if ($response->successful()) {
                             Notification::make()

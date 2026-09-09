@@ -1,0 +1,34 @@
+import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+DB_PORT = os.getenv("DB_PORT", "3306")
+DB_USER = os.getenv("DB_USERNAME", "developer")
+DB_PASS = os.getenv("DB_PASSWORD", "d3v3l0p3r")
+DB_NAME_ANALYTICS = os.getenv("DB_DATABASE_ANALYTICS", "lotolab_lotofacil_analytics")
+DB_NAME_APP = os.getenv("DB_DATABASE", "lotolab_app_v2")
+
+DATABASE_URL = os.getenv("DATABASE_URL", f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME_ANALYTICS}")
+APP_DATABASE_URL = os.getenv("APP_DATABASE_URL", f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME_APP}")
+
+engine = create_engine(DATABASE_URL, echo=False)
+engine_app = create_engine(APP_DATABASE_URL, echo=False)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocalApp = sessionmaker(autocommit=False, autoflush=False, bind=engine_app)
+
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+def get_db_app():
+    db = SessionLocalApp()
+    try:
+        yield db
+    finally:
+        db.close()

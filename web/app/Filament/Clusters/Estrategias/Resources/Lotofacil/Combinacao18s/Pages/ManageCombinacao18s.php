@@ -13,4 +13,9 @@ class ManageCombinacao18s extends ManageRecords
     {
         return [];
     }
+
+    public function getMaxContentWidth(): \Filament\Support\Enums\Width | string | null
+    {
+        return \Filament\Support\Enums\Width::Full;
+    }
 }
