@@ -31,6 +31,9 @@ web/node_modules/
 web/public/storage
 web/public/hot
 web/storage/*.key
+# Ambientes
+.env
+.env.*
 web/.env.backup
 web/.env.production
 
