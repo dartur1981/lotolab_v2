@@ -13,6 +13,8 @@ services:
       - ./python/lotofacil:/app/lotofacil
       - ./logs:/logs
       - ./data:/data
+      - ./logs:/var/www/logs
+      - ./data:/var/www/data
       - ./docker/python/entrypoint.sh:/usr/local/bin/entrypoint.sh:ro
     entrypoint: ["bash", "/usr/local/bin/entrypoint.sh"]
     command: ["uvicorn", "lotofacil.main:app", "--host", "0.0.0.0", "--port", "5000"]

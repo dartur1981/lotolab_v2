@@ -67,6 +67,25 @@ def calc_linha(n):
 def calc_coluna(n):
     return (n - 1) % 5 + 1
 
+def resolve_data_path(file_path: str) -> str:
+    """Resolve caminhos de arquivos compartilhados entre os containers Docker"""
+    if os.path.exists(file_path):
+        return file_path
+    if file_path.startswith("/var/www/data"):
+        alt = file_path.replace("/var/www/data", "/data", 1)
+        if os.path.exists(alt):
+            return alt
+    clean_name = os.path.basename(file_path)
+    for candidate in [
+        os.path.join("/data", clean_name),
+        os.path.join("/data/historicos", clean_name),
+        os.path.join("/var/www/data", clean_name),
+        os.path.join("/var/www/data/historicos", clean_name),
+    ]:
+        if os.path.exists(candidate):
+            return candidate
+    return file_path
+
 def processar_importacao_completa_background(req_path: str, log_filepath: str):
     from lotofacil.database import SessionLocal
     db = SessionLocal()
@@ -75,18 +94,19 @@ def processar_importacao_completa_background(req_path: str, log_filepath: str):
         log_msg(log_filepath, msg)
         
     try:
-        add_log(f"Iniciando importação do arquivo em background: {req_path}")
+        resolved_path = resolve_data_path(req_path)
+        add_log(f"Iniciando importação do arquivo em background: {resolved_path}")
 
-        if not os.path.exists(req_path):
-            add_log("Erro: Arquivo não encontrado.")
+        if not os.path.exists(resolved_path):
+            add_log(f"Erro: Arquivo não encontrado (recebido: {req_path}, resolvido: {resolved_path}).")
             return
 
         try:
             add_log("Lendo arquivo com Pandas...")
-            if req_path.endswith('.csv'):
-                df = pd.read_csv(req_path)
+            if resolved_path.endswith('.csv'):
+                df = pd.read_csv(resolved_path)
             else:
-                df = pd.read_excel(req_path)
+                df = pd.read_excel(resolved_path)
         except Exception as e:
             add_log(f"Erro ao ler arquivo: {str(e)}")
             return
@@ -276,7 +296,10 @@ def processar_importacao_completa_background(req_path: str, log_filepath: str):
 
 @app.post("/importar-historico")
 def importar_historico(req: ImportRequest, background_tasks: BackgroundTasks):
-    logs_dir = "d:/SISTEMAS-PRIVATE/lotolab_app_v2/logs"
+    logs_dir = os.getenv("LOGS_DIR", "/logs" if os.path.exists("/logs") else "/var/www/logs")
+    if not os.path.exists(logs_dir):
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        logs_dir = os.path.join(base_dir, "logs")
     os.makedirs(logs_dir, exist_ok=True)
     
     # Limpa logs antigos
