@@ -69,7 +69,7 @@ return [
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
-            'database' => 'lotolab_lotofacil_analytics',
+            'database' => env('DB_DATABASE_ANALYTICS', 'lotolab_lotofacil_analytics'),
             'username' => env('DB_USERNAME', 'developer'),
             'password' => env('DB_PASSWORD', 'd3v3l0p3r'),
             'unix_socket' => env('DB_SOCKET', ''),
