@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Widgets;
+namespace App\Filament\App\Widgets;
 
 use Filament\Widgets\Widget;
 use Illuminate\Support\Facades\File;
@@ -34,7 +34,7 @@ class BotLogViewerWidget extends Widget
                     
                 $this->dispatch('refresh-jogos-table');
             } elseif (str_contains($content, '[BOT_FINISHED_ERROR]')) {
-                // Remove the marker so it doesn't trigger repeatedly, but KEEP the file so the user can read the error!
+                // Remove o marcador para não disparar repetidamente, mas mantém o arquivo
                 $content = str_replace('[BOT_FINISHED_ERROR]', '', $content);
                 File::put($logFile, $content);
                 $this->logContent = trim($content);
@@ -60,4 +60,3 @@ class BotLogViewerWidget extends Widget
         return parent::render();
     }
 }
-
