@@ -24,19 +24,24 @@ class CiclosWidget extends Widget implements HasForms
     {
         $this->carregarListaCiclos();
         
-        if (!empty($this->ciclos)) {
+        if ($this->ciclos && $this->ciclos->isNotEmpty()) {
             // Seleciona o ciclo aberto ou o mais recente
-            $this->selectedCiclo = $this->ciclos[0]->numero_ciclo;
-            $this->form->fill(['selectedCiclo' => $this->selectedCiclo]);
-            $this->carregarCicloData();
+            $primeiro = $this->ciclos->first();
+            if ($primeiro) {
+                $this->selectedCiclo = $primeiro->numero_ciclo;
+                $this->form->fill(['selectedCiclo' => $this->selectedCiclo]);
+                $this->carregarCicloData();
+            }
         }
     }
 
     public function form(Schema $form): Schema
     {
         $opcoes = [];
-        foreach ($this->ciclos as $c) {
-            $opcoes[$c->numero_ciclo] = "Ciclo {$c->numero_ciclo} — {$c->status}";
+        if ($this->ciclos) {
+            foreach ($this->ciclos as $c) {
+                $opcoes[$c->numero_ciclo] = "Ciclo {$c->numero_ciclo} — {$c->status}";
+            }
         }
 
         return $form
@@ -44,6 +49,7 @@ class CiclosWidget extends Widget implements HasForms
                 Select::make('selectedCiclo')
                     ->label('Selecione o Ciclo para Análise:')
                     ->options($opcoes)
+                    ->placeholder(empty($opcoes) ? 'Nenhum ciclo cadastrado ainda' : 'Selecione um ciclo')
                     ->searchable()
                     ->live()
                     ->afterStateUpdated(function () {
@@ -59,9 +65,17 @@ class CiclosWidget extends Widget implements HasForms
 
     private function carregarListaCiclos()
     {
-        $this->ciclos = DB::connection('analytics_lotofacil')->table('ciclos_lotofacil')
-            ->orderByDesc('numero_ciclo')
-            ->get();
+        try {
+            if (\Illuminate\Support\Facades\Schema::connection('analytics_lotofacil')->hasTable('ciclos_lotofacil')) {
+                $this->ciclos = DB::connection('analytics_lotofacil')->table('ciclos_lotofacil')
+                    ->orderByDesc('numero_ciclo')
+                    ->get();
+            } else {
+                $this->ciclos = collect();
+            }
+        } catch (\Throwable $e) {
+            $this->ciclos = collect();
+        }
     }
 
     private function carregarCicloData()
