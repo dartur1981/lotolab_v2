@@ -20,6 +20,7 @@ services:
       - "${PYTHON_PORT:-5001}:5000"
     networks:
       - lotolab_network
+      - database_network
 
   app:
     build:
@@ -43,6 +44,7 @@ services:
       - python
     networks:
       - lotolab_network
+      - database_network
 
   nginx:
     image: nginx:alpine
@@ -79,7 +81,11 @@ services:
       - app
     networks:
       - lotolab_network
+      - database_network
 
 networks:
   lotolab_network:
     driver: bridge
+  database_network:
+    name: ${DATABASE_NETWORK:-homeserver_database_default}
+    external: true
