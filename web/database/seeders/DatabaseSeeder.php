@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
+use App\Models\Loteria;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -15,11 +16,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $loteria = Loteria::firstOrCreate(
+            ['slug' => 'lotofacil'],
+            [
+                'nome' => 'Lotofácil',
+                'total_de_numeros' => 25,
+                'numeros_por_jogo' => 15,
+                'cor_padrao' => '#9333ea',
+                'ativo' => true,
+            ]
+        );
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        foreach (User::all() as $user) {
+            $user->loterias()->syncWithoutDetaching([$loteria->id]);
+        }
     }
 }
