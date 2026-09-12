@@ -43,7 +43,7 @@ class Volante extends Component
     public function loadTendencias()
     {
         try {
-            $records = DB::connection('mariadb')->select('SELECT dezena, temperatura FROM lotolab_lotofacil_analytics.tendencias_dezenas');
+            $records = DB::connection('mariadb')->select('SELECT dezena, temperatura FROM lotolab_lotofacil_analytics_v2.tendencias_dezenas');
             $this->tendencias = [];
             foreach ($records as $r) {
                 $tempRaw = strtolower(trim($r->temperatura));
@@ -100,7 +100,7 @@ class Volante extends Component
 
         $totalSelecionadas = count($this->minhasDezenas) + count($this->dezenasOutros);
         $this->isLocked = ($this->bolaoAtivo['status'] == 2) || ($totalSelecionadas >= $totalBolao);
-        
+
         if ($totalSelecionadas >= $totalBolao && $this->bolaoAtivo['status'] != 2) {
             Bolao::where('id', $this->bolaoId)->update(['status' => 2]);
             $this->bolaoAtivo['status'] = 2;
@@ -167,36 +167,36 @@ class Volante extends Component
         $this->saveAndBroadcast();
         $this->buscarSugestaoCasada($num);
     }
-    
+
     public function aceitarSugestao()
     {
         if (!$this->sugestaoAtual) return;
         $num = $this->sugestaoAtual['sugerida'];
         $this->toggleDezena($num);
     }
-    
+
     private function buscarSugestaoCasada(int $num)
     {
         $this->sugestaoAtual = null;
-        
+
         if ($this->isLocked) return;
         if ($this->limitePessoal > 0 && count($this->minhasDezenas) >= $this->limitePessoal) return;
-        
+
         try {
             $candidatas = DB::connection('mariadb')
-                ->table('lotolab_lotofacil_analytics.lotofacil_estatisticas_duplas')
+                ->table('lotolab_lotofacil_analytics_v2.lotofacil_estatisticas_duplas')
                 ->where('dezena_1', $num)
                 ->orderBy('frequencia', 'desc')
                 ->limit(20)
                 ->pluck('dezena_2');
-                
+
             $todasMarcadas = array_unique(array_merge($this->minhasDezenas, $this->dezenasOutros));
-            
+
             foreach ($candidatas as $candidata) {
                 if (in_array($candidata, $todasMarcadas)) continue;
-                
+
                 $tempStats = $this->simularEstatisticaAdicionando($candidata);
-                
+
                 $passou = true;
                 if ($tempStats['moldura'] > ($this->bolaoAtivo['max_moldura'] ?? 16)) $passou = false;
                 if ($tempStats['miolo'] > ($this->bolaoAtivo['max_miolo'] ?? 9)) $passou = false;
@@ -206,7 +206,7 @@ class Volante extends Component
                 foreach ($tempStats['colunas'] as $count) {
                     if ($count > ($this->bolaoAtivo['max_coluna'] ?? 5)) $passou = false;
                 }
-                
+
                 if ($passou) {
                     $this->sugestaoAtual = [
                         'marcada' => $num,
@@ -285,7 +285,7 @@ class Volante extends Component
             if ($bolao && $bolao->status != 2) {
                 $bolao->status = 2;
                 $bolao->save();
-                
+
                 // Gera os fechamentos
                 try {
                     $fechamentoService = new \App\Services\LotofacilFechamentoService();

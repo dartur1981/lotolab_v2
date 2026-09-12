@@ -9,7 +9,7 @@ class ConfiguracaoApp extends Model
 {
     use HasFactory;
 
-    protected $table = 'lotolab_lotofacil_analytics.configuracoes_app';
+    protected $table = 'lotolab_lotofacil_analytics_v2.configuracoes_app';
     protected $primaryKey = 'chave';
     public $incrementing = false;
     protected $keyType = 'string';

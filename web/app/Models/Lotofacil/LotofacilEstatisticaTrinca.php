@@ -9,7 +9,7 @@ class LotofacilEstatisticaTrinca extends Model
 {
     use HasFactory;
 
-    protected $table = 'lotolab_lotofacil_analytics.lotofacil_estatisticas_trincas';
+    protected $table = 'lotolab_lotofacil_analytics_v2.lotofacil_estatisticas_trincas';
 
     protected $fillable = [
         'dezenas',

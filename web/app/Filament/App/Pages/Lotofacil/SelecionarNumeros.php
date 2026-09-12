@@ -89,9 +89,9 @@ class SelecionarNumeros extends Page implements HasForms
 
     public function loadTendencias()
     {
-        // Puxa as temperaturas do DB python (mariadb.lotolab_lotofacil_analytics.tendencias_dezenas)
+        // Puxa as temperaturas do DB python (mariadb.lotolab_lotofacil_analytics_v2.tendencias_dezenas)
         try {
-            $records = DB::connection('mariadb')->select('SELECT dezena, temperatura FROM lotolab_lotofacil_analytics.tendencias_dezenas');
+            $records = DB::connection('mariadb')->select('SELECT dezena, temperatura FROM lotolab_lotofacil_analytics_v2.tendencias_dezenas');
             $this->tendencias = [];
             foreach ($records as $r) {
                 $this->tendencias[$r->dezena] = strtolower(trim($r->temperatura));
@@ -109,7 +109,7 @@ class SelecionarNumeros extends Page implements HasForms
         if (!$this->bolaoAtivo) return;
 
         $userId = auth()->id();
-        
+
         // Pega os usuários vinculados neste bolão com o nome
         $pivotRecords = DB::table('lotofacil_bolao_user')
             ->join('users', 'lotofacil_bolao_user.user_id', '=', 'users.id')
@@ -132,7 +132,7 @@ class SelecionarNumeros extends Page implements HasForms
         foreach ($pivotRecords as $record) {
             $selecionadas = json_decode($record->numeros_selecionados, true) ?? [];
             $meuLimite = ($record->user_id == $ultimoUser) ? ($porPessoa + $sobra) : $porPessoa;
-            
+
             $statusArray[] = [
                 'name' => $record->user_name,
                 'selecionadas' => $selecionadas,
@@ -150,10 +150,10 @@ class SelecionarNumeros extends Page implements HasForms
         $this->statusUsuarios = $statusArray;
         $this->minhasDezenas = $minhas;
         $this->dezenasOutros = array_unique($outros);
-        
+
         $totalSelecionadas = count($this->minhasDezenas) + count($this->dezenasOutros);
         $this->isLocked = ($this->bolaoAtivo->status == 2) || ($totalSelecionadas >= $totalBolao);
-        
+
         if ($totalSelecionadas >= $totalBolao && $this->bolaoAtivo->status != 2) {
             Bolao::where('id', $this->bolaoAtivo->id)->update(['status' => 2]);
             $this->bolaoAtivo->status = 2;
@@ -233,7 +233,7 @@ class SelecionarNumeros extends Page implements HasForms
         // Descobre quantas dezenas eu posso marcar (se sou o último ou não)
         $usersIds = DB::table('lotofacil_bolao_user')->where('lotofacil_bolao_id', $this->bolaoAtivo->id)->orderBy('id')->pluck('user_id')->toArray();
         $isUltimo = end($usersIds) == $userId;
-        
+
         $qtd = count($usersIds);
         $totalBolao = $this->bolaoAtivo->total_numeros;
         $porPessoa = floor($totalBolao / $qtd);
@@ -247,7 +247,7 @@ class SelecionarNumeros extends Page implements HasForms
 
         // Valida Limites Globais (Simula a inserção)
         $tempStats = $this->simularEstatisticaAdicionando($num);
-        
+
         if ($tempStats['moldura'] > $this->bolaoAtivo->max_moldura) {
             Notification::make()->title("Limite Global de Moldura ({$this->bolaoAtivo->max_moldura}) foi atingido!")->danger()->send();
             return;
@@ -276,7 +276,7 @@ class SelecionarNumeros extends Page implements HasForms
         $this->refreshBoard();
         $this->verificarEncerramento();
     }
-    
+
     public function aceitarSugestao()
     {
         if ($this->sugestaoAtual && isset($this->sugestaoAtual['sugerida'])) {
@@ -289,10 +289,10 @@ class SelecionarNumeros extends Page implements HasForms
     private function buscarSugestaoCasada($num)
     {
         $this->sugestaoAtual = null;
-        
+
         // Se já lotou a cota global ou pessoal, nem adianta sugerir
         if ($this->isLocked) return;
-        
+
         $usersIds = DB::table('lotofacil_bolao_user')->where('lotofacil_bolao_id', $this->bolaoAtivo->id)->orderBy('id')->pluck('user_id')->toArray();
         $isUltimo = end($usersIds) == auth()->id();
         $qtd = count($usersIds);
@@ -300,25 +300,25 @@ class SelecionarNumeros extends Page implements HasForms
         $porPessoa = $qtd > 0 ? floor($totalBolao / $qtd) : 0;
         $sobra = $qtd > 0 ? $totalBolao % $qtd : 0;
         $meuLimite = $isUltimo ? ($porPessoa + $sobra) : $porPessoa;
-        
+
         if (count($this->minhasDezenas) >= $meuLimite) return;
 
         try {
             $candidatas = DB::connection('mariadb')
-                ->table('lotolab_lotofacil_analytics.lotofacil_estatisticas_duplas')
+                ->table('lotolab_lotofacil_analytics_v2.lotofacil_estatisticas_duplas')
                 ->where('dezena_1', $num)
                 ->orderBy('frequencia', 'desc')
                 ->limit(20)
                 ->pluck('dezena_2');
-                
+
             $todasMarcadas = array_unique(array_merge($this->minhasDezenas, $this->dezenasOutros));
-            
+
             \Log::info("buscarSugestaoCasada para $num. Candidatas: " . json_encode($candidatas) . ". Todas marcadas: " . json_encode($todasMarcadas));
-            
+
             foreach ($candidatas as $candidata) {
                 // Se já estiver marcada, ignora
                 if (in_array($candidata, $todasMarcadas)) continue;
-                
+
                 \Log::info("Encontrou sugestao forçada: $candidata");
                 $this->sugestaoAtual = [
                     'marcada' => $num,
@@ -346,7 +346,7 @@ class SelecionarNumeros extends Page implements HasForms
         if (count($todasMarcadas) >= $totalBolao) {
             $this->bolaoAtivo->status = 1;
             $this->bolaoAtivo->save();
-            
+
             // Gera os fechamentos
             try {
                 $fechamentoService = new \App\Services\LotofacilFechamentoService();
