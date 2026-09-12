@@ -12,6 +12,8 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ImportarResultados extends Page implements HasForms
 {
@@ -47,7 +49,7 @@ class ImportarResultados extends Page implements HasForms
                             ->required()
                             ->disk('data_dir') // Usa o disco raiz
                             ->directory('historicos') // Salva em /data/historicos
-                            ->preserveFilenames()
+                            ->getUploadedFileNameForStorageUsing(fn ($file) => Str::ascii($file->getClientOriginalName()))
                             ->acceptedFileTypes([
                                 'text/csv', 
                                 'text/plain', 
@@ -75,14 +77,16 @@ class ImportarResultados extends Page implements HasForms
         $fileName = $data['arquivo_historico'] ?? null;
         
         if ($fileName) {
-            // No FileUpload, o path salvo no state geralmente é relativo ao disco. Ex: 'historicos/Lotofacil.xlsx'
-            // O disk data_dir aponta para base_path('../data')
-            $path = base_path('../data/' . $fileName);
+            // No FileUpload, o path salvo no state é relativo ao disco (ex: 'historicos/Lotofacil.xlsx')
+            $disk = Storage::disk('data_dir');
+            $fullPath = $disk->path($fileName);
+            $realPath = realpath($fullPath) ?: str_replace('/var/www/html/../data', '/var/www/data', $fullPath);
+            $pathToSend = str_replace('\\', '/', $realPath);
             
             try {
                 $pythonUrl = rtrim(config('services.python_api.url', 'http://127.0.0.1:5000'), '/');
                 $response = Http::timeout(300)->post("{$pythonUrl}/importar-historico", [
-                    'path' => $path
+                    'path' => $pathToSend
                 ]);
                 
                 if ($response->successful()) {

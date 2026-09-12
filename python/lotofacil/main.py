@@ -69,22 +69,76 @@ def calc_coluna(n):
 
 def resolve_data_path(file_path: str) -> str:
     """Resolve caminhos de arquivos compartilhados entre os containers Docker"""
+    import unicodedata
+
+    def strip_accents(s: str) -> str:
+        return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower()
+
+    # 1. Se existir exatamente como passado
     if os.path.exists(file_path):
         return file_path
-    if file_path.startswith("/var/www/data"):
-        alt = file_path.replace("/var/www/data", "/data", 1)
+
+    # 2. Normaliza caminhos como /var/www/html/../data/historicos -> /var/www/data/historicos
+    norm = os.path.normpath(file_path).replace("\\", "/")
+    if os.path.exists(norm):
+        return norm
+
+    # 3. Mapeamentos entre /var/www/data e /data
+    if norm.startswith("/var/www/data"):
+        alt = norm.replace("/var/www/data", "/data", 1)
         if os.path.exists(alt):
             return alt
+    elif norm.startswith("/data"):
+        alt = norm.replace("/data", "/var/www/data", 1)
+        if os.path.exists(alt):
+            return alt
+
     clean_name = os.path.basename(file_path)
-    for candidate in [
+    clean_no_accents = strip_accents(clean_name)
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    # 4. Candidatos diretos
+    candidates = [
         os.path.join("/data", clean_name),
         os.path.join("/data/historicos", clean_name),
         os.path.join("/var/www/data", clean_name),
         os.path.join("/var/www/data/historicos", clean_name),
-    ]:
+        os.path.join(base_dir, "data", clean_name),
+        os.path.join(base_dir, "data", "historicos", clean_name),
+    ]
+    for candidate in candidates:
         if os.path.exists(candidate):
             return candidate
-    return file_path
+
+    # 5. Busca insensível a acentos / maiúsculas (ex: Lotofácil.xlsx vs Lotofacil.xlsx)
+    search_dirs = [
+        "/data/historicos",
+        "/data",
+        "/var/www/data/historicos",
+        "/var/www/data",
+        os.path.join(base_dir, "data", "historicos"),
+        os.path.join(base_dir, "data"),
+    ]
+    for sdir in search_dirs:
+        if os.path.isdir(sdir):
+            for entry in os.listdir(sdir):
+                if strip_accents(entry) == clean_no_accents:
+                    candidate = os.path.join(sdir, entry)
+                    if os.path.exists(candidate):
+                        return candidate
+
+    # 6. Fallback final: pega a planilha mais recente na pasta historicos
+    for sdir in ["/data/historicos", "/var/www/data/historicos", os.path.join(base_dir, "data", "historicos")]:
+        if os.path.isdir(sdir):
+            files = [
+                os.path.join(sdir, f) for f in os.listdir(sdir)
+                if f.lower().endswith(('.xlsx', '.xls', '.csv')) and not f.startswith('~$')
+            ]
+            if files:
+                files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                return files[0]
+
+    return norm if os.path.exists(norm) else file_path
 
 def processar_importacao_completa_background(req_path: str, log_filepath: str):
     from lotofacil.database import SessionLocal
