@@ -20,7 +20,18 @@ class Concurso extends Model
     ];
 
     protected $casts = [
-        'dezenas' => 'array',
         'data_sorteio' => 'date',
     ];
+
+    public function getDezenasAttribute(): array
+    {
+        $dezenas = [];
+        for ($i = 1; $i <= 15; $i++) {
+            $col = "bola_{$i}";
+            if (!is_null($this->$col)) {
+                $dezenas[] = sprintf('%02d', (int) $this->$col);
+            }
+        }
+        return $dezenas;
+    }
 }

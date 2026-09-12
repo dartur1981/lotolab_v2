@@ -34,7 +34,13 @@ class ConcursoResource extends Resource
     {
         return $schema
             ->components([
-                //
+                TextInput::make('concurso')
+                    ->label('Número do Concurso')
+                    ->required()
+                    ->numeric(),
+                DatePicker::make('data_sorteio')
+                    ->label('Data do Sorteio')
+                    ->required(),
             ]);
     }
 
@@ -44,15 +50,18 @@ class ConcursoResource extends Resource
             ->recordTitleAttribute('concurso')
             ->columns([
                 TextColumn::make('concurso')
+                    ->label('Concurso')
                     ->numeric()
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('data_sorteio')
-                    ->date()
+                    ->label('Data')
+                    ->date('d/m/Y')
                     ->sortable(),
-                TextColumn::make('bola_1')->label('B1'),
-                TextColumn::make('bola_2')->label('B2'),
-                TextColumn::make('bola_3')->label('B3'),
-                TextColumn::make('bola_15')->label('B15'),
+                TextColumn::make('dezenas')
+                    ->label('Dezenas Sorteadas')
+                    ->badge()
+                    ->color('primary'),
             ])
             ->defaultSort('concurso', 'desc')
             ->filters([
