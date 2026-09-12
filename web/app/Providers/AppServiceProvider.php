@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -20,6 +21,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (
+            str_starts_with(config('app.url'), 'https://') ||
+            request()->header('X-Forwarded-Proto') === 'https' ||
+            request()->server('HTTP_X_FORWARDED_PROTO') === 'https' ||
+            request()->server('HTTPS') === 'on'
+        ) {
+            URL::forceScheme('https');
+        }
+
         Gate::before(function ($user, $ability) {
             return $user->hasRole(config('filament-shield.super_admin.name', 'super_admin')) ? true : null;
         });
