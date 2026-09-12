@@ -23,6 +23,16 @@ class Concurso extends Model
         'data_sorteio' => 'date',
     ];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Concurso $concurso) {
+            \Illuminate\Support\Facades\DB::connection('analytics_lotofacil')
+                ->table('features_lotofacil')
+                ->where('concurso', $concurso->concurso)
+                ->delete();
+        });
+    }
+
     public function getDezenasAttribute(): array
     {
         $dezenas = [];

@@ -32,7 +32,7 @@ class ResultadoLotofacil(Base):
 class FeaturesLotofacil(Base):
     __tablename__ = "features_lotofacil"
 
-    concurso = Column(Integer, ForeignKey("resultados_lotofacil.concurso"), primary_key=True)
+    concurso = Column(Integer, ForeignKey("resultados_lotofacil.concurso", ondelete="CASCADE"), primary_key=True)
     pares = Column(Integer)
     impares = Column(Integer)
     primos = Column(Integer)
