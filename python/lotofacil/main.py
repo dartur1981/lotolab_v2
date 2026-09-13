@@ -473,7 +473,10 @@ def api_bot_ir_para_carrinho():
         sucesso = bot.ir_para_carrinho()
         return {"status": "success", "data": {"sucesso": sucesso}}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        import logging
+        logging.error(f"Erro em /bot/ir-para-carrinho: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e) or repr(e))
 
 @app.post("/bot/ler-carrinho")
 def api_bot_ler_carrinho():
@@ -483,7 +486,10 @@ def api_bot_ler_carrinho():
         jogos_lidos = bot.ler_jogos_do_carrinho()
         return {"status": "success", "data": {"jogos_lidos": jogos_lidos}}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        import logging
+        logging.error(f"Erro em /bot/ler-carrinho: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e) or repr(e))
 
 @app.post("/bot/conciliar")
 def api_bot_conciliar(req: BotConciliarRequest):
@@ -493,7 +499,10 @@ def api_bot_conciliar(req: BotConciliarRequest):
         resultado = bot.conciliar(req.jogos, req.lidos)
         return {"status": "success", "data": resultado}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        import logging
+        logging.error(f"Erro em /bot/conciliar: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e) or repr(e))
 
 @app.post("/bot/lancar-jogos")
 def api_bot_lancar_jogos(req: BotLancarRequest):
@@ -503,7 +512,10 @@ def api_bot_lancar_jogos(req: BotLancarRequest):
         sucesso = bot.lancar_jogos(req.jogos)
         return {"status": "success", "data": {"sucesso": sucesso}}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        import logging
+        logging.error(f"Erro em /bot/lancar-jogos: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e) or repr(e))
 
 @app.post("/bot/lancar-e-conciliar")
 def api_bot_lancar_e_conciliar(req: BotLancarRequest):
@@ -575,7 +587,10 @@ def api_bot_lancar_e_conciliar(req: BotLancarRequest):
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        import logging
+        logging.error(f"Erro em /bot/lancar-e-conciliar: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e) or repr(e))
 
 if __name__ == "__main__":
     import uvicorn

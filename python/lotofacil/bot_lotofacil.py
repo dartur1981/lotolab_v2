@@ -23,14 +23,29 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 class LotofacilBot:
     def __init__(self, serial=None):
         logging.info("Conectando ao dispositivo...")
-        if serial is None:
-            import adbutils
+        import adbutils
+        try:
             devices = adbutils.adb.device_list()
-            if len(devices) > 0:
-                serial = devices[0].serial
-                logging.info(f"Selecionando o dispositivo: {serial}")
-        self.d = u2.connect(serial)
-        logging.info(f"Conectado: {self.d.info.get('model', 'Dispositivo Desconhecido')}")
+        except Exception as e_adb:
+            logging.error(f"Erro ao consultar servidor ADB: {e_adb}")
+            raise RuntimeError(f"Falha ao consultar servidor ADB ({e_adb}). Certifique-se de que o ADB está em execução.")
+
+        if not devices:
+            msg_sem_device = "Nenhum dispositivo Android encontrado via ADB! Conecte seu aparelho (USB ou 'adb connect <IP>:5555') antes de iniciar o robô."
+            logging.error(msg_sem_device)
+            raise RuntimeError(msg_sem_device)
+
+        if serial is None:
+            serial = devices[0].serial
+            logging.info(f"Selecionando o dispositivo: {serial}")
+
+        try:
+            self.d = u2.connect(serial)
+            model = self.d.info.get('model', serial)
+            logging.info(f"Conectado ao dispositivo: {model}")
+        except Exception as e_u2:
+            logging.error(f"Erro ao conectar via uiautomator2 no aparelho {serial}: {e_u2}")
+            raise RuntimeError(f"Falha ao conectar no aparelho {serial} via uiautomator2: {e_u2}")
 
     def aguardar_overlay_sumir(self):
         time.sleep(0.5)

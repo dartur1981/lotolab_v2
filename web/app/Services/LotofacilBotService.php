@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -15,6 +17,28 @@ class LotofacilBotService
     }
 
     /**
+     * Extrai mensagem detalhada de erro da resposta HTTP da API Python.
+     */
+    protected function extractErrorMessage(Response $response, string $defaultMsg): string
+    {
+        $status = $response->status();
+        $detail = $response->json('detail') ?? $response->json('message');
+
+        if (!empty($detail)) {
+            $msg = is_array($detail) ? json_encode($detail, JSON_UNESCAPED_UNICODE) : (string) $detail;
+            return "{$msg} (HTTP {$status})";
+        }
+
+        $body = trim($response->body());
+        if (!empty($body)) {
+            $cleanBody = strip_tags($body);
+            return "{$defaultMsg} (HTTP {$status}: " . substr($cleanBody, 0, 300) . ")";
+        }
+
+        return "{$defaultMsg} (HTTP {$status})";
+    }
+
+    /**
      * Lança uma lista de jogos no dispositivo.
      */
     public function lancarJogos(array $jogos): bool
@@ -25,12 +49,16 @@ class LotofacilBotService
             ]);
 
             if ($response->failed() || $response->json('status') !== 'success') {
-                $errorMsg = $response->json('detail') ?? $response->json('message') ?? 'Erro ao lançar jogos na API Python.';
+                $errorMsg = $this->extractErrorMessage($response, 'Erro ao lançar jogos na API Python.');
                 Log::error("LotofacilBot Erro (lancarJogos): {$errorMsg}");
                 throw new \Exception($errorMsg);
             }
 
             return $response->json('data.sucesso') ?? false;
+        } catch (ConnectionException $e) {
+            $msg = "Não foi possível conectar ao serviço Python em {$this->apiUrl}. Verifique se o container 'lotolab-python-v2' está em execução.";
+            Log::error("LotofacilBot Erro de Conexão (lancarJogos): " . $e->getMessage());
+            throw new \Exception($msg, 0, $e);
         } catch (\Exception $e) {
             Log::error("Erro no LotofacilBotService (lancarJogos): " . $e->getMessage());
             throw $e;
@@ -46,12 +74,16 @@ class LotofacilBotService
             $response = Http::timeout(60)->post("{$this->apiUrl}/bot/ir-para-carrinho");
 
             if ($response->failed() || $response->json('status') !== 'success') {
-                $errorMsg = $response->json('detail') ?? $response->json('message') ?? 'Erro ao navegar para o carrinho na API Python.';
+                $errorMsg = $this->extractErrorMessage($response, 'Erro ao navegar para o carrinho na API Python.');
                 Log::error("LotofacilBot Erro (irParaCarrinho): {$errorMsg}");
                 throw new \Exception($errorMsg);
             }
 
             return $response->json('data.sucesso') ?? false;
+        } catch (ConnectionException $e) {
+            $msg = "Não foi possível conectar ao serviço Python em {$this->apiUrl}. Verifique se o container 'lotolab-python-v2' está em execução.";
+            Log::error("LotofacilBot Erro de Conexão (irParaCarrinho): " . $e->getMessage());
+            throw new \Exception($msg, 0, $e);
         } catch (\Exception $e) {
             Log::error("Erro no LotofacilBotService (irParaCarrinho): " . $e->getMessage());
             throw $e;
@@ -68,12 +100,16 @@ class LotofacilBotService
             $response = Http::timeout(120)->post("{$this->apiUrl}/bot/ler-carrinho");
 
             if ($response->failed() || $response->json('status') !== 'success') {
-                $errorMsg = $response->json('detail') ?? $response->json('message') ?? 'Erro ao ler carrinho na API Python.';
+                $errorMsg = $this->extractErrorMessage($response, 'Erro ao ler carrinho na API Python.');
                 Log::error("LotofacilBot Erro (lerCarrinho): {$errorMsg}");
                 throw new \Exception($errorMsg);
             }
 
             return $response->json('data.jogos_lidos') ?? [];
+        } catch (ConnectionException $e) {
+            $msg = "Não foi possível conectar ao serviço Python em {$this->apiUrl}. Verifique se o container 'lotolab-python-v2' está em execução.";
+            Log::error("LotofacilBot Erro de Conexão (lerCarrinho): " . $e->getMessage());
+            throw new \Exception($msg, 0, $e);
         } catch (\Exception $e) {
             Log::error("Erro no LotofacilBotService (lerCarrinho): " . $e->getMessage());
             throw $e;
@@ -92,12 +128,16 @@ class LotofacilBotService
             ]);
 
             if ($response->failed() || $response->json('status') !== 'success') {
-                $errorMsg = $response->json('detail') ?? $response->json('message') ?? 'Erro ao conciliar jogos na API Python.';
+                $errorMsg = $this->extractErrorMessage($response, 'Erro ao conciliar jogos na API Python.');
                 Log::error("LotofacilBot Erro (conciliar): {$errorMsg}");
                 throw new \Exception($errorMsg);
             }
 
             return $response->json('data') ?? [];
+        } catch (ConnectionException $e) {
+            $msg = "Não foi possível conectar ao serviço Python em {$this->apiUrl}. Verifique se o container 'lotolab-python-v2' está em execução.";
+            Log::error("LotofacilBot Erro de Conexão (conciliar): " . $e->getMessage());
+            throw new \Exception($msg, 0, $e);
         } catch (\Exception $e) {
             Log::error("Erro no LotofacilBotService (conciliar): " . $e->getMessage());
             throw $e;
@@ -117,12 +157,16 @@ class LotofacilBotService
             ]);
 
             if ($response->failed() || $response->json('status') !== 'success') {
-                $errorMsg = $response->json('detail') ?? $response->json('message') ?? 'Erro na execução do robô na API Python.';
+                $errorMsg = $this->extractErrorMessage($response, 'Erro na execução do robô na API Python.');
                 Log::error("LotofacilBot Erro (lancarEConciliar): {$errorMsg}");
                 throw new \Exception($errorMsg);
             }
 
             return $response->json('data') ?? [];
+        } catch (ConnectionException $e) {
+            $msg = "Não foi possível conectar ao serviço Python em {$this->apiUrl}. Verifique se o container 'lotolab-python-v2' está em execução.";
+            Log::error("LotofacilBot Erro de Conexão (lancarEConciliar): " . $e->getMessage());
+            throw new \Exception($msg, 0, $e);
         } catch (\Exception $e) {
             Log::error("Erro no LotofacilBotService (lancarEConciliar): " . $e->getMessage());
             throw $e;
