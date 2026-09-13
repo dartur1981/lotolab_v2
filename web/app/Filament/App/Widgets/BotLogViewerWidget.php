@@ -23,7 +23,8 @@ class BotLogViewerWidget extends Widget
             if (str_contains($content, '[BOT_FINISHED_SUCCESS]')) {
                 // Remove a tag para não ficar disparando a notificação infinitamente, mas MANTÉM o arquivo!
                 $content = str_replace('[BOT_FINISHED_SUCCESS]', '', $content);
-                File::put($logFile, $content);
+                @File::put($logFile, $content);
+                @chmod($logFile, 0666);
                 $this->logContent = trim($content);
                 
                 \Filament\Notifications\Notification::make()
@@ -36,7 +37,8 @@ class BotLogViewerWidget extends Widget
             } elseif (str_contains($content, '[BOT_FINISHED_ERROR]')) {
                 // Remove o marcador para não disparar repetidamente, mas mantém o arquivo
                 $content = str_replace('[BOT_FINISHED_ERROR]', '', $content);
-                File::put($logFile, $content);
+                @File::put($logFile, $content);
+                @chmod($logFile, 0666);
                 $this->logContent = trim($content);
                 
                 \Filament\Notifications\Notification::make()

@@ -23,6 +23,7 @@ class RunBotCommand extends Command
         $this->info("Conectando à API Python: {$apiUrl}");
         Log::info("RunBotCommand iniciado com ação: {$action}, IDs: {$idsStr}, Modelo: {$modelType}, API: {$apiUrl}");
         file_put_contents(base_path('../logs/bot_lotofacil.log'), "Iniciando robô (Ação: {$action}, IDs: {$idsStr})...\nConectando à API Python: {$apiUrl}\n");
+        @chmod(base_path('../logs/bot_lotofacil.log'), 0666);
 
         try {
             if ($action === 'lancar') {

@@ -43,6 +43,57 @@ class JogosRelationManager extends RelationManager
         return true;
     }
 
+    public static function getPhpBinary(): string
+    {
+        if (class_exists(\Symfony\Component\Process\PhpExecutableFinder::class)) {
+            $finder = new \Symfony\Component\Process\PhpExecutableFinder();
+            $binary = $finder->find(false);
+            if ($binary) {
+                return $binary;
+            }
+        }
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            return 'php';
+        }
+
+        foreach (['/usr/local/bin/php', '/usr/bin/php', '/bin/php'] as $path) {
+            if (@is_executable($path)) {
+                return $path;
+            }
+        }
+
+        return 'php';
+    }
+
+    public static function executeBackgroundBot(string $action, string $ids, string $model = 'lotofacil'): void
+    {
+        $logDir = base_path('../logs');
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0777, true);
+        }
+
+        $lockFile = base_path('../logs/bot.lock');
+        @file_put_contents($lockFile, 'running');
+        @chmod($lockFile, 0666);
+
+        $artisan = base_path('artisan');
+        $phpBinary = static::getPhpBinary();
+        $logPath = base_path('../logs/artisan_bot.log');
+
+        $args = "bot:run " . escapeshellarg($action) . " --ids=" . escapeshellarg($ids) . " --model=" . escapeshellarg($model);
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            $cmd = 'start /B cmd /c "' . escapeshellcmd($phpBinary) . ' ' . escapeshellarg($artisan) . ' ' . $args . '" > NUL 2> NUL';
+            \Illuminate\Support\Facades\Log::info("Disparando robô (Windows): {$cmd}");
+            pclose(popen($cmd, "r"));
+        } else {
+            $cmd = "nohup " . escapeshellcmd($phpBinary) . " " . escapeshellarg($artisan) . " " . $args . " >> " . escapeshellarg($logPath) . " 2>&1 &";
+            \Illuminate\Support\Facades\Log::info("Disparando robô (Linux): {$cmd}");
+            exec($cmd);
+        }
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -190,19 +241,7 @@ class JogosRelationManager extends RelationManager
                     ->disabled(fn () => static::isBotRunning())
                     ->action(function ($record) {
                         try {
-                            $lockFile = base_path('../logs/bot.lock');
-                            file_put_contents($lockFile, 'running');
-
-                            $artisan = base_path('artisan');
-                            $phpBinary = escapeshellcmd(PHP_BINARY);
-                            if (PHP_OS_FAMILY === 'Windows') {
-                                $command = 'start /B cmd /c "' . $phpBinary . ' ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . $record->id . '" > NUL 2> NUL';
-                            } else {
-                                $logPath = escapeshellarg(base_path('../logs/artisan_bot.log'));
-                                $command = $phpBinary . ' ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . (int)$record->id . ' >> ' . $logPath . ' 2>&1 &';
-                            }
-                            pclose(popen($command, "r"));
-                            
+                            static::executeBackgroundBot('lancar', (string) $record->id, 'lotofacil');
                             \Filament\Notifications\Notification::make()->title('Aposta enviada para execução em background!')->success()->send();
                         } catch (\Throwable $e) {
                             \Filament\Notifications\Notification::make()->title('Erro ao lançar')->body($e->getMessage())->danger()->send();
@@ -245,19 +284,7 @@ class JogosRelationManager extends RelationManager
                             }
 
                             try {
-                                $lockFile = base_path('../logs/bot.lock');
-                                file_put_contents($lockFile, 'running');
-
-                                $idsStr = implode(',', $ids);
-                                $artisan = base_path('artisan');
-                                $phpBinary = escapeshellcmd(PHP_BINARY);
-                                if (PHP_OS_FAMILY === 'Windows') {
-                                    $command = 'start /B cmd /c "' . $phpBinary . ' ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . escapeshellarg($idsStr) . '" > NUL 2> NUL';
-                                } else {
-                                    $logPath = escapeshellarg(base_path('../logs/artisan_bot.log'));
-                                    $command = $phpBinary . ' ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . escapeshellarg($idsStr) . ' >> ' . $logPath . ' 2>&1 &';
-                                }
-                                pclose(popen($command, "r"));
+                                static::executeBackgroundBot('lancar', implode(',', $ids), 'lotofacil');
                                 
                                 if (method_exists($livewire, 'deselectAllTableRecords')) {
                                     $livewire->deselectAllTableRecords();
