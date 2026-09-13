@@ -2,72 +2,16 @@
 
 namespace App\Services;
 
-use Symfony\Component\Process\Process;
-use Symfony\Component\Process\Exception\ProcessFailedException;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class LotofacilBotService
 {
-    protected string $pythonPath = 'python'; // Ou 'python3', dependendo do ambiente
-    protected string $scriptPath;
+    protected string $apiUrl;
 
     public function __construct()
     {
-        $this->scriptPath = base_path('../python/lotofacil/bot_lotofacil.py');
-        $venvPython = base_path('../python/.venv/Scripts/python.exe');
-        if (file_exists($venvPython)) {
-            $this->pythonPath = $venvPython;
-        }
-    }
-
-    /**
-     * Executa o comando Python e retorna o output parseado de JSON.
-     */
-    protected function runCommand(array $args, ?callable $callback = null): array
-    {
-        $command = array_merge([$this->pythonPath, $this->scriptPath], $args);
-        
-        $env = getenv();
-        if (empty($env['SystemRoot']) && empty($env['SYSTEMROOT'])) {
-            $env['SystemRoot'] = 'C:\\Windows';
-            $env['SYSTEMROOT'] = 'C:\\Windows';
-        }
-        
-        $process = new Process($command, null, $env);
-        $process->setTimeout(900);
-        
-        $outputJson = '';
-        
-        try {
-            $process->run(function ($type, $buffer) use ($callback, &$outputJson) {
-                if ($type === Process::OUT) {
-                    $outputJson .= $buffer;
-                }
-                
-                if ($callback) {
-                    $callback($type, $buffer);
-                }
-            });
-            
-            if (!$process->isSuccessful()) {
-                throw new \Exception("Erro no script Python: " . $process->getErrorOutput());
-            }
-            
-            // O python script só dá print(json) no final
-            $result = json_decode($outputJson, true);
-            
-            if (!$result || $result['status'] === 'error') {
-                $errorMsg = $result['message'] ?? 'Erro desconhecido no Python';
-                Log::error("LotofacilBot Erro: {$errorMsg}");
-                throw new \Exception($errorMsg);
-            }
-            
-            return $result['data'] ?? [];
-            
-        } catch (\Exception $e) {
-            Log::error("Erro no LotofacilBotService: " . $e->getMessage());
-            throw $e;
-        }
+        $this->apiUrl = rtrim(config('services.python_api.url', 'http://127.0.0.1:5000'), '/');
     }
 
     /**
@@ -75,12 +19,22 @@ class LotofacilBotService
      */
     public function lancarJogos(array $jogos): bool
     {
-        $data = $this->runCommand([
-            '--action', 'lancar',
-            '--jogos', json_encode($jogos)
-        ]);
-        
-        return $data['sucesso'] ?? false;
+        try {
+            $response = Http::timeout(600)->post("{$this->apiUrl}/bot/lancar-jogos", [
+                'jogos' => $jogos,
+            ]);
+
+            if ($response->failed() || $response->json('status') !== 'success') {
+                $errorMsg = $response->json('detail') ?? $response->json('message') ?? 'Erro ao lançar jogos na API Python.';
+                Log::error("LotofacilBot Erro (lancarJogos): {$errorMsg}");
+                throw new \Exception($errorMsg);
+            }
+
+            return $response->json('data.sucesso') ?? false;
+        } catch (\Exception $e) {
+            Log::error("Erro no LotofacilBotService (lancarJogos): " . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
@@ -88,11 +42,20 @@ class LotofacilBotService
      */
     public function irParaCarrinho(): bool
     {
-        $data = $this->runCommand([
-            '--action', 'carrinho'
-        ]);
-        
-        return $data['sucesso'] ?? false;
+        try {
+            $response = Http::timeout(60)->post("{$this->apiUrl}/bot/ir-para-carrinho");
+
+            if ($response->failed() || $response->json('status') !== 'success') {
+                $errorMsg = $response->json('detail') ?? $response->json('message') ?? 'Erro ao navegar para o carrinho na API Python.';
+                Log::error("LotofacilBot Erro (irParaCarrinho): {$errorMsg}");
+                throw new \Exception($errorMsg);
+            }
+
+            return $response->json('data.sucesso') ?? false;
+        } catch (\Exception $e) {
+            Log::error("Erro no LotofacilBotService (irParaCarrinho): " . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
@@ -101,37 +64,68 @@ class LotofacilBotService
      */
     public function lerCarrinho(): array
     {
-        $data = $this->runCommand([
-            '--action', 'ler'
-        ]);
-        
-        return $data['jogos_lidos'] ?? [];
+        try {
+            $response = Http::timeout(120)->post("{$this->apiUrl}/bot/ler-carrinho");
+
+            if ($response->failed() || $response->json('status') !== 'success') {
+                $errorMsg = $response->json('detail') ?? $response->json('message') ?? 'Erro ao ler carrinho na API Python.';
+                Log::error("LotofacilBot Erro (lerCarrinho): {$errorMsg}");
+                throw new \Exception($errorMsg);
+            }
+
+            return $response->json('data.jogos_lidos') ?? [];
+        } catch (\Exception $e) {
+            Log::error("Erro no LotofacilBotService (lerCarrinho): " . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
-     * Concilia a lista original com a lista lida (faz no python, mas poderia ser aqui no PHP).
+     * Concilia a lista original com a lista lida.
      */
     public function conciliar(array $jogosOriginais, array $jogosLidos): array
     {
-        $data = $this->runCommand([
-            '--action', 'conciliar',
-            '--jogos', json_encode($jogosOriginais),
-            '--lidos', json_encode($jogosLidos)
-        ]);
-        
-        return $data;
+        try {
+            $response = Http::timeout(120)->post("{$this->apiUrl}/bot/conciliar", [
+                'jogos' => $jogosOriginais,
+                'lidos' => $jogosLidos,
+            ]);
+
+            if ($response->failed() || $response->json('status') !== 'success') {
+                $errorMsg = $response->json('detail') ?? $response->json('message') ?? 'Erro ao conciliar jogos na API Python.';
+                Log::error("LotofacilBot Erro (conciliar): {$errorMsg}");
+                throw new \Exception($errorMsg);
+            }
+
+            return $response->json('data') ?? [];
+        } catch (\Exception $e) {
+            Log::error("Erro no LotofacilBotService (conciliar): " . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
      * Executa o lançamento e em seguida a conciliação no carrinho num único processo.
      */
-    public function lancarEConciliar(array $jogos, ?callable $callback = null): array
+    public function lancarEConciliar(array $jogos, ?callable $callback = null, array $ids = [], string $modelType = 'lotofacil'): array
     {
-        $data = $this->runCommand([
-            '--action', 'lancar_e_conciliar',
-            '--jogos', json_encode($jogos)
-        ], $callback);
-        
-        return $data;
+        try {
+            $response = Http::timeout(1200)->post("{$this->apiUrl}/bot/lancar-e-conciliar", [
+                'jogos' => $jogos,
+                'ids' => array_values(array_map('intval', $ids)),
+                'model_type' => $modelType,
+            ]);
+
+            if ($response->failed() || $response->json('status') !== 'success') {
+                $errorMsg = $response->json('detail') ?? $response->json('message') ?? 'Erro na execução do robô na API Python.';
+                Log::error("LotofacilBot Erro (lancarEConciliar): {$errorMsg}");
+                throw new \Exception($errorMsg);
+            }
+
+            return $response->json('data') ?? [];
+        } catch (\Exception $e) {
+            Log::error("Erro no LotofacilBotService (lancarEConciliar): " . $e->getMessage());
+            throw $e;
+        }
     }
 }

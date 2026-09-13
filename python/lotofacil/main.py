@@ -456,6 +456,127 @@ def api_prever_sorteio(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class BotLancarRequest(BaseModel):
+    jogos: list[list[int]]
+    ids: list[int] = []
+    model_type: str = "lotofacil"
+
+class BotConciliarRequest(BaseModel):
+    jogos: list[list[int]]
+    lidos: list[list[int]]
+
+@app.post("/bot/ir-para-carrinho")
+def api_bot_ir_para_carrinho():
+    try:
+        from lotofacil.bot_lotofacil import LotofacilBot
+        bot = LotofacilBot()
+        sucesso = bot.ir_para_carrinho()
+        return {"status": "success", "data": {"sucesso": sucesso}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/bot/ler-carrinho")
+def api_bot_ler_carrinho():
+    try:
+        from lotofacil.bot_lotofacil import LotofacilBot
+        bot = LotofacilBot()
+        jogos_lidos = bot.ler_jogos_do_carrinho()
+        return {"status": "success", "data": {"jogos_lidos": jogos_lidos}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/bot/conciliar")
+def api_bot_conciliar(req: BotConciliarRequest):
+    try:
+        from lotofacil.bot_lotofacil import LotofacilBot
+        bot = LotofacilBot()
+        resultado = bot.conciliar(req.jogos, req.lidos)
+        return {"status": "success", "data": resultado}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/bot/lancar-jogos")
+def api_bot_lancar_jogos(req: BotLancarRequest):
+    try:
+        from lotofacil.bot_lotofacil import LotofacilBot
+        bot = LotofacilBot()
+        sucesso = bot.lancar_jogos(req.jogos)
+        return {"status": "success", "data": {"sucesso": sucesso}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/bot/lancar-e-conciliar")
+def api_bot_lancar_e_conciliar(req: BotLancarRequest):
+    try:
+        from lotofacil.bot_lotofacil import LotofacilBot
+        from sqlalchemy import text
+        import time
+        from datetime import datetime, timedelta
+        import logging
+
+        bot = LotofacilBot()
+        hora_inicio = datetime.now()
+        inicio_fase1 = time.time()
+
+        def on_jogo_adicionado(index):
+            if req.ids and index < len(req.ids):
+                try:
+                    table_name = "estrategia_fechamento_jogos" if req.model_type == "estrategia" else "lotofacil_fechamento_jogos"
+                    with engine_app.begin() as conn:
+                        conn.execute(
+                            text(f"UPDATE {table_name} SET status = '3' WHERE id = :id"),
+                            {"id": req.ids[index]}
+                        )
+                except Exception as ex:
+                    logging.warning(f"Erro ao atualizar status do jogo {req.ids[index]} para 3: {ex}")
+
+        sucesso_lancamento = bot.lancar_jogos(req.jogos, on_jogo_adicionado=on_jogo_adicionado)
+        fim_fase1 = time.time()
+        duracao_fase1 = fim_fase1 - inicio_fase1
+
+        duracao_fase2 = 0.0
+        conciliacao = None
+        foi_carrinho = False
+
+        if sucesso_lancamento:
+            logging.info("--- INICIANDO FASE 2: CONCILIAÇÃO NO CARRINHO ---")
+            inicio_fase2 = time.time()
+            time.sleep(1)
+            foi_carrinho = bot.ir_para_carrinho()
+            if foi_carrinho:
+                jogos_lidos = bot.ler_jogos_do_carrinho()
+                conciliacao = bot.conciliar(req.jogos, jogos_lidos)
+            fim_fase2 = time.time()
+            duracao_fase2 = fim_fase2 - inicio_fase2
+
+        hora_fim = datetime.now()
+        duracao_total = (hora_fim - hora_inicio).total_seconds()
+
+        def format_time(seconds):
+            return str(timedelta(seconds=int(seconds))).zfill(8)
+
+        logging.info("")
+        logging.info("=== RESUMO DA EXECUÇÃO ===")
+        logging.info(f"Início: {hora_inicio.strftime('%Y-%m-%d %H:%M:%S')}")
+        logging.info(f"Fim:    {hora_fim.strftime('%Y-%m-%d %H:%M:%S')}")
+        logging.info(f"Fase 1 (Lançamento):  {format_time(duracao_fase1)} ({duracao_fase1:.2f}s)")
+        if sucesso_lancamento:
+            logging.info(f"Fase 2 (Conciliação): {format_time(duracao_fase2)} ({duracao_fase2:.2f}s)")
+        logging.info(f"Duração Total:        {format_time(duracao_total)} ({duracao_total:.2f}s)")
+        logging.info("==========================")
+        logging.info("")
+
+        return {
+            "status": "success",
+            "data": {
+                "sucesso_lancamento": sucesso_lancamento,
+                "foi_carrinho": foi_carrinho,
+                "conciliacao": conciliacao
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("lotofacil.main:app", host="127.0.0.1", port=5000, reload=True)

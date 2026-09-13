@@ -115,7 +115,7 @@ class LotofacilBot:
         time.sleep(0.05) # Micro-pausa para evitar sobreposição de toques no Android
         return True
 
-    def lancar_jogos(self, lista_jogos: list) -> bool:
+    def lancar_jogos(self, lista_jogos: list, on_jogo_adicionado=None) -> bool:
         logging.info("--- INICIANDO FASE 1: LANÇAMENTO DE JOGOS ---")
         sucesso_geral = True
         
@@ -135,6 +135,11 @@ class LotofacilBot:
             if sucesso_jogo:
                 self.adicionar_ao_carrinho()
                 logging.info(f"Jogo {i} adicionado com sucesso ao carrinho.")
+                if on_jogo_adicionado:
+                    try:
+                        on_jogo_adicionado(i - 1)
+                    except Exception as e_cb:
+                        logging.warning(f"Erro no callback on_jogo_adicionado: {e_cb}")
                 
                 # Se ainda houver mais jogos para lançar, precisamos voltar para a tela do volante
                 if i < len(lista_jogos):

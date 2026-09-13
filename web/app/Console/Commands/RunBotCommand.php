@@ -56,16 +56,8 @@ class RunBotCommand extends Command
                 if (!empty($jogosParaLancar)) {
                     $this->info("Iniciando Lançamento e Conciliação no Carrinho num único processo...");
                     
-                    $resultado = $bot->lancarEConciliar($jogosParaLancar, function ($type, $buffer) use ($jogosRecords) {
-                        // O Python emite: "Jogo X adicionado com sucesso ao carrinho"
-                        if (preg_match('/Jogo (\d+) adicionado com sucesso/i', $buffer, $matches)) {
-                            $index = (int)$matches[1] - 1; // Python printa 1-based, array é 0-based
-                            if (isset($jogosRecords[$index])) {
-                                // Atualiza para 3 (Lançado) em tempo real!
-                                $jogosRecords[$index]->update(['status' => '3']);
-                            }
-                        }
-                    });
+                    $recordIds = $jogosRecords->pluck('id')->toArray();
+                    $resultado = $bot->lancarEConciliar($jogosParaLancar, null, $recordIds, $modelType);
                     
                     if (!empty($resultado['sucesso_lancamento'])) {
                         

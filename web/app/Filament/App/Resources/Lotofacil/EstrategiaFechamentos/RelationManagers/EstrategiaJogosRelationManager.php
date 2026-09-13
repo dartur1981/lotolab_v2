@@ -161,7 +161,11 @@ class EstrategiaJogosRelationManager extends RelationManager
                             file_put_contents($lockFile, 'running');
 
                             $artisan = base_path('artisan');
-                            $command = 'start /B cmd /c "php ' . escapeshellarg($artisan) . ' bot:run lancar --model=estrategia --ids=' . $record->id . '" > NUL 2> NUL';
+                            if (PHP_OS_FAMILY === 'Windows') {
+                                $command = 'start /B cmd /c "php ' . escapeshellarg($artisan) . ' bot:run lancar --model=estrategia --ids=' . $record->id . '" > NUL 2> NUL';
+                            } else {
+                                $command = 'php ' . escapeshellarg($artisan) . ' bot:run lancar --model=estrategia --ids=' . (int)$record->id . ' > /dev/null 2>&1 &';
+                            }
                             pclose(popen($command, "r"));
                             
                             \Filament\Notifications\Notification::make()->title('Aposta enviada para execução em background!')->success()->send();
@@ -211,7 +215,11 @@ class EstrategiaJogosRelationManager extends RelationManager
 
                                 $idsStr = implode(',', $ids);
                                 $artisan = base_path('artisan');
-                                $command = 'start /B cmd /c "php ' . escapeshellarg($artisan) . ' bot:run lancar --model=estrategia --ids=' . escapeshellarg($idsStr) . '" > NUL 2> NUL';
+                                if (PHP_OS_FAMILY === 'Windows') {
+                                    $command = 'start /B cmd /c "php ' . escapeshellarg($artisan) . ' bot:run lancar --model=estrategia --ids=' . escapeshellarg($idsStr) . '" > NUL 2> NUL';
+                                } else {
+                                    $command = 'php ' . escapeshellarg($artisan) . ' bot:run lancar --model=estrategia --ids=' . escapeshellarg($idsStr) . ' > /dev/null 2>&1 &';
+                                }
                                 pclose(popen($command, "r"));
                                 
                                 if (method_exists($livewire, 'deselectAllTableRecords')) {
