@@ -27,6 +27,22 @@ class JogosRelationManager extends RelationManager
         // Livewire will automatically refresh the component
     }
 
+    public static function isBotRunning(): bool
+    {
+        $lockFile = base_path('../logs/bot.lock');
+        if (!file_exists($lockFile)) {
+            return false;
+        }
+
+        // Se o arquivo tiver mais de 5 minutos, considera travado/órfão e remove
+        if ((time() - filemtime($lockFile)) > 300) {
+            @unlink($lockFile);
+            return false;
+        }
+
+        return true;
+    }
+
     public function form(Schema $schema): Schema
     {
         return $schema
@@ -146,24 +162,44 @@ class JogosRelationManager extends RelationManager
                             \Filament\Notifications\Notification::make()->title('Erro ao ler')->body($e->getMessage())->danger()->send();
                         }
                     }),
+                \Filament\Actions\Action::make('destravar_robo')
+                    ->label('Destravar Robô')
+                    ->icon('heroicon-o-lock-open')
+                    ->color('warning')
+                    ->visible(fn () => static::isBotRunning())
+                    ->requiresConfirmation()
+                    ->modalHeading('Destravar Robô')
+                    ->modalDescription('O robô está marcado como em execução. Deseja remover o bloqueio e liberar as ações de aposta?')
+                    ->action(function () {
+                        $lockFile = base_path('../logs/bot.lock');
+                        if (file_exists($lockFile)) {
+                            @unlink($lockFile);
+                        }
+                        \Filament\Notifications\Notification::make()
+                            ->title('Robô destravado com sucesso!')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->actions([
                 \Filament\Actions\Action::make('apostar')
                     ->label('Apostar')
                     ->icon('heroicon-o-play')
                     ->color('primary')
-                    ->visible(fn ($record) => $record->status == '0')
-                    ->disabled(fn () => file_exists(base_path('../logs/bot.lock')))
+                    ->visible(fn ($record) => in_array((string) $record->status, ['0', '1']))
+                    ->disabled(fn () => static::isBotRunning())
                     ->action(function ($record) {
                         try {
                             $lockFile = base_path('../logs/bot.lock');
                             file_put_contents($lockFile, 'running');
 
                             $artisan = base_path('artisan');
+                            $phpBinary = escapeshellcmd(PHP_BINARY);
                             if (PHP_OS_FAMILY === 'Windows') {
-                                $command = 'start /B cmd /c "php ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . $record->id . '" > NUL 2> NUL';
+                                $command = 'start /B cmd /c "' . $phpBinary . ' ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . $record->id . '" > NUL 2> NUL';
                             } else {
-                                $command = 'php ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . (int)$record->id . ' > /dev/null 2>&1 &';
+                                $logPath = escapeshellarg(base_path('../logs/artisan_bot.log'));
+                                $command = $phpBinary . ' ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . (int)$record->id . ' >> ' . $logPath . ' 2>&1 &';
                             }
                             pclose(popen($command, "r"));
                             
@@ -191,7 +227,7 @@ class JogosRelationManager extends RelationManager
                         ->label('Apostar Selecionados')
                         ->icon('heroicon-o-play')
                         ->color('primary')
-                        ->disabled(fn () => file_exists(base_path('../logs/bot.lock')))
+                        ->disabled(fn () => static::isBotRunning())
                         ->action(function (\Illuminate\Database\Eloquent\Collection $records, $livewire = null) {
                             $validRecords = $records->filter(function ($record) {
                                 return in_array((string) $record->status, ['0', '1']);
@@ -214,10 +250,12 @@ class JogosRelationManager extends RelationManager
 
                                 $idsStr = implode(',', $ids);
                                 $artisan = base_path('artisan');
+                                $phpBinary = escapeshellcmd(PHP_BINARY);
                                 if (PHP_OS_FAMILY === 'Windows') {
-                                    $command = 'start /B cmd /c "php ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . escapeshellarg($idsStr) . '" > NUL 2> NUL';
+                                    $command = 'start /B cmd /c "' . $phpBinary . ' ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . escapeshellarg($idsStr) . '" > NUL 2> NUL';
                                 } else {
-                                    $command = 'php ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . escapeshellarg($idsStr) . ' > /dev/null 2>&1 &';
+                                    $logPath = escapeshellarg(base_path('../logs/artisan_bot.log'));
+                                    $command = $phpBinary . ' ' . escapeshellarg($artisan) . ' bot:run lancar --ids=' . escapeshellarg($idsStr) . ' >> ' . $logPath . ' 2>&1 &';
                                 }
                                 pclose(popen($command, "r"));
                                 

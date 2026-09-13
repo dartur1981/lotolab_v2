@@ -19,18 +19,24 @@ class RunBotCommand extends Command
         $idsStr = $this->option('ids');
         $modelType = $this->option('model') ?: 'lotofacil';
         
+        Log::info("RunBotCommand iniciado com ação: {$action}, IDs: {$idsStr}, Modelo: {$modelType}");
+        file_put_contents(base_path('../logs/bot_lotofacil.log'), "Iniciando robô (Ação: {$action}, IDs: {$idsStr})...\n");
+
         try {
             if ($action === 'lancar') {
                 if (!$idsStr) {
-                    $this->error("IDs não fornecidos.");
-                    return;
+                    throw new \Exception("IDs não fornecidos.");
                 }
                 
-                $ids = explode(',', $idsStr);
+                $ids = array_filter(array_map('trim', explode(',', $idsStr)));
                 if ($modelType === 'estrategia') {
                     $jogosRecords = \App\Models\Lotofacil\EstrategiaFechamentoJogo::whereIn('id', $ids)->get();
                 } else {
                     $jogosRecords = LotofacilFechamentoJogo::whereIn('id', $ids)->get();
+                }
+
+                if ($jogosRecords->isEmpty()) {
+                    throw new \Exception("Nenhum registro de jogo encontrado no banco para os IDs: {$idsStr} (Modelo: {$modelType})");
                 }
                 
                 $jogosParaLancar = [];
@@ -53,11 +59,14 @@ class RunBotCommand extends Command
                     }
                 }
                 
-                if (!empty($jogosParaLancar)) {
-                    $this->info("Iniciando Lançamento e Conciliação no Carrinho num único processo...");
-                    
-                    $recordIds = $jogosRecords->pluck('id')->toArray();
-                    $resultado = $bot->lancarEConciliar($jogosParaLancar, null, $recordIds, $modelType);
+                if (empty($jogosParaLancar)) {
+                    throw new \Exception("Nenhuma dezena válida encontrada nos jogos selecionados (IDs: {$idsStr}).");
+                }
+
+                $this->info("Iniciando Lançamento e Conciliação no Carrinho num único processo...");
+                
+                $recordIds = $jogosRecords->pluck('id')->toArray();
+                $resultado = $bot->lancarEConciliar($jogosParaLancar, null, $recordIds, $modelType);
                     
                     if (!empty($resultado['sucesso_lancamento'])) {
                         
@@ -90,7 +99,6 @@ class RunBotCommand extends Command
                     } else {
                         throw new \Exception("Falha na Fase 1. O robô não conseguiu lançar todos os jogos.");
                     }
-                }
             } elseif ($action === 'carrinho') {
                 $bot->irParaCarrinho();
             } elseif ($action === 'ler') {
