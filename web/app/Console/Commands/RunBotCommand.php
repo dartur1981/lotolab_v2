@@ -96,10 +96,12 @@ class RunBotCommand extends Command
                             }
                             file_put_contents(base_path('../logs/bot_lotofacil.log'), $msg, FILE_APPEND);
                         } else {
-                            throw new \Exception("Fase 1 OK, mas falha ao navegar para o carrinho na Fase 2 (ou ler o carrinho).");
+                            $motivo = $resultado['motivo_falha'] ?? "Falha ao navegar para o carrinho na Fase 2 (ou ler o carrinho).";
+                            throw new \Exception("Fase 1 OK, mas falha na Fase 2: {$motivo}");
                         }
                     } else {
-                        throw new \Exception("Falha na Fase 1. O robô não conseguiu lançar todos os jogos.");
+                        $motivo = $resultado['motivo_falha'] ?? "O robô não conseguiu lançar todos os jogos.";
+                        throw new \Exception("Falha na Fase 1: {$motivo}");
                     }
             } elseif ($action === 'carrinho') {
                 $bot->irParaCarrinho();

@@ -588,7 +588,8 @@ def api_bot_lancar_e_conciliar(req: BotLancarRequest):
             "data": {
                 "sucesso_lancamento": sucesso_lancamento,
                 "foi_carrinho": foi_carrinho,
-                "conciliacao": conciliacao
+                "conciliacao": conciliacao,
+                "motivo_falha": getattr(bot, "ultimo_erro", None)
             }
         }
     except Exception as e:

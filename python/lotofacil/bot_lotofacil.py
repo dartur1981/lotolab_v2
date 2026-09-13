@@ -39,10 +39,17 @@ class LotofacilBot:
             serial = devices[0].serial
             logging.info(f"Selecionando o dispositivo: {serial}")
 
+        self.ultimo_erro = None
+
         try:
             self.d = u2.connect(serial)
             model = self.d.info.get('model', serial)
             logging.info(f"Conectado ao dispositivo: {model}")
+            
+            if not self.d.info.get('screenOn', True):
+                logging.info("Tela do aparelho desligada. Ligando tela...")
+                self.d.screen_on()
+                time.sleep(0.5)
         except Exception as e_u2:
             logging.error(f"Erro ao conectar via uiautomator2 no aparelho {serial}: {e_u2}")
             raise RuntimeError(f"Falha ao conectar no aparelho {serial} via uiautomator2: {e_u2}")
@@ -57,13 +64,17 @@ class LotofacilBot:
         # Portanto, a dezena N corresponde ao ToggleButton no índice (N - 1).
         botoes = self.d(className="android.widget.ToggleButton")
         if botoes.count != 25:
-            logging.error(f"Não foram encontrados 25 botões na tela (encontrados {botoes.count}). Certifique-se de estar na tela do volante da Lotofácil.")
+            msg = f"Não foram encontrados 25 botões na tela (encontrados {botoes.count}). Certifique-se de que o app da Caixa está aberto no volante da Lotofácil."
+            logging.error(msg)
+            self.ultimo_erro = msg
             return False
 
         elemento = botoes[numero - 1]
         
         if not elemento.exists:
-            logging.error(f"Dezena {num_str} não encontrada na tela.")
+            msg = f"Dezena {num_str} não encontrada na tela."
+            logging.error(msg)
+            self.ultimo_erro = msg
             return False
 
         max_tentativas = 3
@@ -84,7 +95,9 @@ class LotofacilBot:
             
             time.sleep(1.0)
 
-        logging.error(f"Falha ao clicar na dezena {num_str} após {max_tentativas} tentativas.")
+        msg = f"Falha ao clicar na dezena {num_str} após {max_tentativas} tentativas."
+        logging.error(msg)
+        self.ultimo_erro = msg
         return False
 
     def adicionar_ao_carrinho(self):
@@ -96,7 +109,9 @@ class LotofacilBot:
             time.sleep(1.5)
             return True
         else:
-            logging.warning("Botão 'Adicionar ao Carrinho' não encontrado.")
+            msg = "Botão 'Adicionar ao Carrinho' não encontrado após selecionar as dezenas."
+            logging.warning(msg)
+            self.ultimo_erro = msg
             return False
 
     def mapear_botoes(self) -> bool:
@@ -106,7 +121,9 @@ class LotofacilBot:
         logging.info("Mapeando coordenadas dos 25 botões para digitação ultrarrápida...")
         botoes = self.d(className="android.widget.ToggleButton")
         if botoes.count != 25:
-            logging.error(f"Não foram encontrados 25 botões na tela (encontrados {botoes.count}).")
+            msg = f"Não foram encontrados 25 botões na tela (encontrados {botoes.count}). Certifique-se de que o app da Caixa está aberto no volante da Lotofácil."
+            logging.error(msg)
+            self.ultimo_erro = msg
             return False
             
         self.botoes_coords = {}
@@ -148,7 +165,11 @@ class LotofacilBot:
                     break 
             
             if sucesso_jogo:
-                self.adicionar_ao_carrinho()
+                if not self.adicionar_ao_carrinho():
+                    logging.error(f"Falha ao adicionar o Jogo {i} ao carrinho.")
+                    sucesso_geral = False
+                    break
+
                 logging.info(f"Jogo {i} adicionado com sucesso ao carrinho.")
                 if on_jogo_adicionado:
                     try:
@@ -192,7 +213,14 @@ class LotofacilBot:
             time.sleep(2)
             return True
         else:
-            logging.warning("Ícone/Botão do carrinho não encontrado. Talvez já esteja na tela?")
+            btn_txt = self.d(textContains="Carrinho")
+            if btn_txt.exists:
+                btn_txt.click()
+                time.sleep(2)
+                return True
+            msg = "Ícone/Botão do carrinho não encontrado. Certifique-se de que o app da Caixa está aberto."
+            logging.warning(msg)
+            self.ultimo_erro = msg
             return False
 
     def extrair_dezenas_do_container(self, container_ui_object) -> list:
