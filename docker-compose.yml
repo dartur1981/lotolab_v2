@@ -35,7 +35,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - PYTHON_API_URL=http://python:5000
+      - PYTHON_API_URL=http://lotolab-python-v2:5000
     volumes:
       - ./web:/var/www/html
       - ./logs:/var/www/logs
@@ -74,7 +74,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      - PYTHON_API_URL=http://python:5000
+      - PYTHON_API_URL=http://lotolab-python-v2:5000
     volumes:
       - ./web:/var/www/html
       - ./data:/var/www/data

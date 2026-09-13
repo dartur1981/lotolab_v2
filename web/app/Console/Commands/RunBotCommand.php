@@ -19,8 +19,10 @@ class RunBotCommand extends Command
         $idsStr = $this->option('ids');
         $modelType = $this->option('model') ?: 'lotofacil';
         
-        Log::info("RunBotCommand iniciado com ação: {$action}, IDs: {$idsStr}, Modelo: {$modelType}");
-        file_put_contents(base_path('../logs/bot_lotofacil.log'), "Iniciando robô (Ação: {$action}, IDs: {$idsStr})...\n");
+        $apiUrl = $bot->getApiUrl();
+        $this->info("Conectando à API Python: {$apiUrl}");
+        Log::info("RunBotCommand iniciado com ação: {$action}, IDs: {$idsStr}, Modelo: {$modelType}, API: {$apiUrl}");
+        file_put_contents(base_path('../logs/bot_lotofacil.log'), "Iniciando robô (Ação: {$action}, IDs: {$idsStr})...\nConectando à API Python: {$apiUrl}\n");
 
         try {
             if ($action === 'lancar') {

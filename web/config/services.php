@@ -36,7 +36,7 @@ return [
     ],
 
     'python_api' => [
-        'url' => env('PYTHON_API_URL', 'http://127.0.0.1:5000'),
+        'url' => env('PYTHON_API_URL', 'http://lotolab-python-v2:5000'),
     ],
 
 ];

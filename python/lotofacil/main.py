@@ -34,6 +34,11 @@ except Exception as e:
 
 app = FastAPI(title="Lotolab Python API", version="1.0.0")
 
+@app.get("/")
+@app.get("/health")
+def api_health():
+    return {"status": "ok", "service": "lotolab-python-api", "version": "1.0.0"}
+
 @app.get("/setup-tables")
 @app.post("/setup-tables")
 def setup_tables():
