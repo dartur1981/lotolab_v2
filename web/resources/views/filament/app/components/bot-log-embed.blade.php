@@ -1,1 +1,1 @@
-@livewire(\App\Filament\Widgets\BotLogViewerWidget::class)
+@livewire(\App\Filament\App\Widgets\BotLogViewerWidget::class)
