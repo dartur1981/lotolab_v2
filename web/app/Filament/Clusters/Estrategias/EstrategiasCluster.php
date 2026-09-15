@@ -20,9 +20,22 @@ class EstrategiasCluster extends Cluster
         return \App\Filament\Clusters\Estrategias\Pages\Estrategias::getUrl();
     }
 
-    public static function getUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null): string
-    {
-        return \App\Filament\Clusters\Estrategias\Pages\Estrategias::getUrl($parameters, $isAbsolute, $panel, $tenant);
+    public static function getUrl(
+        array $parameters = [],
+        bool $isAbsolute = true,
+        ?string $panel = null,
+        ?Model $tenant = null,
+        bool $shouldGuessMissingParameters = false,
+        ?string $configuration = null,
+    ): string {
+        return \App\Filament\Clusters\Estrategias\Pages\Estrategias::getUrl(
+            $parameters,
+            $isAbsolute,
+            $panel,
+            $tenant,
+            $shouldGuessMissingParameters,
+            $configuration,
+        );
     }
 
     public function mount(): void
