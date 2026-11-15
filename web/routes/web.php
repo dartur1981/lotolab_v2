@@ -72,3 +72,17 @@ Route::prefix('pwa/megasena')->name('pwa.megasena.')->middleware('loteria.isolad
         return redirect('/pwa');
     })->name('logout');
 });
+
+// Redirecionamentos de compatibilidade para páginas do painel Filament por Tenant
+Route::get('app/{tenant}/selecionar-numeros', function ($tenant) {
+    $slug = ($tenant == 2 || $tenant === 'megasena') ? 'megasena' : 'lotofacil';
+    return redirect("/app/{$tenant}/{$slug}/selecionar-numeros");
+});
+Route::get('app/{tenant}/configuracoes', function ($tenant) {
+    $slug = ($tenant == 2 || $tenant === 'megasena') ? 'megasena' : 'lotofacil';
+    return redirect("/app/{$tenant}/{$slug}/configuracoes");
+});
+Route::get('app/{tenant}/importar-resultados', function ($tenant) {
+    $slug = ($tenant == 2 || $tenant === 'megasena') ? 'megasena' : 'lotofacil';
+    return redirect("/app/{$tenant}/{$slug}/importar-resultados");
+});

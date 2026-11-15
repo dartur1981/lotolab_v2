@@ -20,6 +20,7 @@ class ImportarResultados extends Page implements HasForms
 {
     use InteractsWithForms, BelongsToLotofacil;
 
+    protected static ?string $slug = 'lotofacil/importar-resultados';
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
     protected string $view = 'filament.app.pages.lotofacil.importar-resultados';
     

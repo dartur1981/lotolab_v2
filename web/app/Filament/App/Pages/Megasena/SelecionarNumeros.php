@@ -16,6 +16,7 @@ class SelecionarNumeros extends Page implements HasForms
 {
     use InteractsWithForms, BelongsToMegasena;
 
+    protected static ?string $slug = 'megasena/selecionar-numeros';
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-check-circle';
     protected static string|\UnitEnum|null $navigationGroup = 'Mega-Sena';
     protected static ?string $title = 'Selecionar Números';

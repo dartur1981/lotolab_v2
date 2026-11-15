@@ -22,6 +22,7 @@ class ImportarResultados extends Page implements HasForms
 {
     use InteractsWithForms, BelongsToMegasena;
 
+    protected static ?string $slug = 'megasena/importar-resultados';
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
     protected string $view = 'filament.app.pages.megasena.importar-resultados';
     

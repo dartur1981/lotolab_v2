@@ -18,6 +18,7 @@ class Configuracoes extends Page implements HasForms
 {
     use InteractsWithForms, BelongsToLotofacil;
 
+    protected static ?string $slug = 'lotofacil/configuracoes';
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
     protected static ?string $navigationLabel = 'Configurações';
     protected ?string $heading = 'Configurações do Sistema';
