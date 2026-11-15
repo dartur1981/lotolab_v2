@@ -14,6 +14,8 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema as DbSchema;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Str;
 
 class ImportarResultados extends Page implements HasForms
@@ -72,8 +74,52 @@ class ImportarResultados extends Page implements HasForms
         ];
     }
 
+    private function garantirColunasAnaliticas(): void
+    {
+        try {
+            $schema = DbSchema::connection('analytics_megasena');
+            if ($schema->hasTable('features_megasena')) {
+                $schema->table('features_megasena', function (Blueprint $table) use ($schema) {
+                    if (!$schema->hasColumn('features_megasena', 'temp_quente')) {
+                        $table->integer('temp_quente')->default(0)->after('soma');
+                    }
+                    if (!$schema->hasColumn('features_megasena', 'temp_morno')) {
+                        $table->integer('temp_morno')->default(0)->after('temp_quente');
+                    }
+                    if (!$schema->hasColumn('features_megasena', 'temp_frio')) {
+                        $table->integer('temp_frio')->default(0)->after('temp_morno');
+                    }
+                });
+            }
+
+            if ($schema->hasTable('tendencias_dezenas_megasena')) {
+                $schema->table('tendencias_dezenas_megasena', function (Blueprint $table) use ($schema) {
+                    if (!$schema->hasColumn('tendencias_dezenas_megasena', 'score_temperatura')) {
+                        $table->float('score_temperatura')->default(0.0)->after('atraso');
+                    }
+                    if (!$schema->hasColumn('tendencias_dezenas_megasena', 'r_10')) {
+                        $table->float('r_10')->default(0.0)->after('score_temperatura');
+                    }
+                    if (!$schema->hasColumn('tendencias_dezenas_megasena', 'r_20')) {
+                        $table->float('r_20')->default(0.0)->after('r_10');
+                    }
+                    if (!$schema->hasColumn('tendencias_dezenas_megasena', 'r_50')) {
+                        $table->float('r_50')->default(0.0)->after('r_20');
+                    }
+                    if (!$schema->hasColumn('tendencias_dezenas_megasena', 'r_100')) {
+                        $table->float('r_100')->default(0.0)->after('r_50');
+                    }
+                });
+            }
+        } catch (\Throwable $e) {
+            // Em caso de falha de conexão inicial no analytics, o backend Python possui o fallback
+        }
+    }
+
     public function save(): void
     {
+        $this->garantirColunasAnaliticas();
+
         $data = $this->form->getState();
         $fileName = $data['arquivo_historico'] ?? null;
         
