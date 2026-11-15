@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lotobolao-pwa-v2';
+const CACHE_NAME = 'lotolab-pwa-v3';
 const ASSETS_TO_CACHE = [
     '/pwa',
     '/manifest.json'

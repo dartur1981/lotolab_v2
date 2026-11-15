@@ -1,11 +1,12 @@
 {
-  "name": "Lotofácil Bolão Pro",
-  "short_name": "LotoBolão",
-  "description": "Aplicativo PWA para seleção em tempo real de dezenas da Lotofácil",
+  "name": "LotoLab Bolões Mobile",
+  "short_name": "LotoLab",
+  "description": "Aplicativo PWA para seleção e acompanhamento de bolões da Mega-Sena e Lotofácil",
   "start_url": "/pwa",
+  "scope": "/pwa",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#0B1325",
+  "theme_color": "#0B1325",
   "orientation": "portrait-primary",
   "icons": [
     {
