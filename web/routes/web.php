@@ -86,3 +86,17 @@ Route::get('app/{tenant}/importar-resultados', function ($tenant) {
     $slug = ($tenant == 2 || $tenant === 'megasena') ? 'megasena' : 'lotofacil';
     return redirect("/app/{$tenant}/{$slug}/importar-resultados");
 });
+
+// Rotas de Logout GET para conveniência
+Route::get('admin/logout', function () {
+    auth()->logout();
+    session()->invalidate();
+    session()->regenerateToken();
+    return redirect('/admin/login');
+});
+Route::get('app/logout', function () {
+    auth()->logout();
+    session()->invalidate();
+    session()->regenerateToken();
+    return redirect('/app/login');
+});
