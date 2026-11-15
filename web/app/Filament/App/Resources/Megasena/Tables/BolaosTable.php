@@ -2,6 +2,7 @@
 
 namespace App\Filament\App\Resources\Megasena\Tables;
 
+use App\Filament\App\Resources\Megasena\BolaoResource;
 use App\Models\Megasena\Bolao;
 use App\Services\MegasenaFechamentoService;
 use Filament\Tables\Columns\TextColumn;
@@ -72,6 +73,11 @@ class BolaosTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
+                Action::make('selecoes')
+                    ->label('Seleções')
+                    ->icon('heroicon-o-users')
+                    ->color('info')
+                    ->url(fn (Bolao $record): string => BolaoResource::getUrl('selecoes', ['record' => $record])),
                 Action::make('gerar_fechamento')
                     ->label('Gerar Jogos')
                     ->color('success')

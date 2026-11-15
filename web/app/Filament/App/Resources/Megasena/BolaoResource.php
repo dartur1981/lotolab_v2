@@ -5,7 +5,7 @@ namespace App\Filament\App\Resources\Megasena;
 use App\Filament\App\Resources\Megasena\Pages\CreateBolao;
 use App\Filament\App\Resources\Megasena\Pages\EditBolao;
 use App\Filament\App\Resources\Megasena\Pages\ListBolaos;
-use App\Filament\App\Resources\Megasena\RelationManagers\ParticipantesRelationManager;
+use App\Filament\App\Resources\Megasena\Pages\SelecoesBolao;
 use App\Filament\App\Resources\Megasena\Schemas\BolaoForm;
 use App\Filament\App\Resources\Megasena\Tables\BolaosTable;
 use App\Filament\Concerns\BelongsToMegasena;
@@ -45,7 +45,7 @@ class BolaoResource extends Resource
     public static function getRelations(): array
     {
         return [
-            ParticipantesRelationManager::class,
+            //
         ];
     }
 
@@ -55,6 +55,7 @@ class BolaoResource extends Resource
             'index' => ListBolaos::route('/'),
             'create' => CreateBolao::route('/create'),
             'edit' => EditBolao::route('/{record}/edit'),
+            'selecoes' => SelecoesBolao::route('/{record}/selecoes'),
         ];
     }
 }
