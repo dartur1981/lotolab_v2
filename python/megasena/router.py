@@ -26,7 +26,8 @@ from megasena.classificador_temperatura import (
 def garantir_colunas_temperatura(db_engine):
     from sqlalchemy import text
     with db_engine.connect() as conn:
-        for col in ["temp_quente", "temp_morno", "temp_frio"]:
+        cols_features = ["temp_quente", "temp_morno", "temp_frio"] + [f"sub_{s}" for s in range(1, 16)]
+        for col in cols_features:
             try:
                 conn.execute(text(f"ALTER TABLE features_megasena ADD COLUMN `{col}` INT NOT NULL DEFAULT 0;"))
                 conn.commit()

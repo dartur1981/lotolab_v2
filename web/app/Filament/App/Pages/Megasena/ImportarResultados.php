@@ -89,6 +89,12 @@ class ImportarResultados extends Page implements HasForms
                     if (!$schema->hasColumn('features_megasena', 'temp_frio')) {
                         $table->integer('temp_frio')->default(0)->after('temp_morno');
                     }
+                    for ($s = 1; $s <= 15; $s++) {
+                        $subCol = "sub_{$s}";
+                        if (!$schema->hasColumn('features_megasena', $subCol)) {
+                            $table->integer($subCol)->default(0)->nullable();
+                        }
+                    }
                 });
             }
 
