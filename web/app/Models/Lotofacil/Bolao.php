@@ -44,6 +44,8 @@ class Bolao extends Model
 
     public function isPendingForUser($userId): bool
     {
+        if ($this->status >= 2) return false;
+
         $totalBolao = $this->total_numeros ?? 25;
         $pivotRecords = \Illuminate\Support\Facades\DB::table('lotofacil_bolao_user')
             ->where('lotofacil_bolao_id', $this->id)

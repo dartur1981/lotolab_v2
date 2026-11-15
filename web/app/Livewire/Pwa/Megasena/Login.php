@@ -54,13 +54,24 @@ class Login extends Component
         $participantes = [];
         
         if (!$this->selectedUserId) {
-            $participantes = User::whereHas('megasenaBoloes', function($query) {
-                $query->whereIn('status', [0, 1, 2]);
+            $participantesBrutos = User::with(['megasenaBoloes' => function($q) {
+                $q->whereIn('status', [0, 1]);
+            }])->whereHas('megasenaBoloes', function($query) {
+                $query->whereIn('status', [0, 1]);
             })->orderBy('name')->get();
 
-            // Se não houver usuários cadastrados em bolões da Mega-Sena, exibe todos os usuários como fallback
-            if ($participantes->isEmpty()) {
-                $participantes = User::orderBy('name')->take(20)->get();
+            foreach ($participantesBrutos as $user) {
+                $isPending = false;
+                foreach ($user->megasenaBoloes as $bolao) {
+                    if ($bolao->isPendingForUser($user->id)) {
+                        $isPending = true;
+                        break;
+                    }
+                }
+                
+                if ($isPending) {
+                    $participantes[] = $user;
+                }
             }
         }
 

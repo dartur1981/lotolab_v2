@@ -1,4 +1,4 @@
-<div class="flex-1 flex flex-col items-center pt-6 pb-2 w-full max-w-sm mx-auto h-full">
+<div wire:poll.5s class="flex-1 flex flex-col items-center pt-6 pb-2 w-full max-w-sm mx-auto h-full">
 
     <!-- Header / Branding Mega-Sena -->
     <div class="text-center mb-6 shrink-0">
@@ -46,8 +46,12 @@
                         </div>
                     </button>
                 @empty
-                    <div class="text-center py-6">
-                        <p class="text-slate-400 text-sm">Nenhum participante encontrado.</p>
+                    <div class="text-center py-8 px-4 bg-[#1e293b]/50 rounded-2xl border border-slate-700/50">
+                        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <p class="text-white font-bold text-sm">Seleções Finalizadas!</p>
+                        <p class="text-slate-400 text-xs mt-1">Todos os participantes já selecionaram suas dezenas ou não há bolões em andamento.</p>
                     </div>
                 @endforelse
             </div>

@@ -53,9 +53,9 @@ class Login extends Component
         
         if (!$this->selectedUserId) {
             $participantesBrutos = \App\Models\User::with(['boloes_lotofacil' => function($q) {
-                $q->where('status', 1);
+                $q->whereIn('status', [0, 1]);
             }])->whereHas('boloes_lotofacil', function($query) {
-                $query->where('status', 1);
+                $query->whereIn('status', [0, 1]);
             })->orderBy('name')->get();
 
             $participantes = [];

@@ -65,6 +65,8 @@ class Bolao extends Model
 
     public function isPendingForUser($userId): bool
     {
+        if ($this->status >= 2) return false;
+
         $limitePessoal = $this->getLimiteDezenasForUser($userId);
         if ($limitePessoal === 0) return false;
         
