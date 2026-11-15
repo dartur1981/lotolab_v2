@@ -33,5 +33,20 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(function ($user, $ability) {
             return $user->hasRole(config('filament-shield.super_admin.name', 'super_admin')) ? true : null;
         });
+
+        // Registro de Policies dos Recursos Lotofácil
+        Gate::policy(\App\Models\Lotofacil\Bolao::class, \App\Policies\Lotofacil\BolaoPolicy::class);
+        Gate::policy(\App\Models\Lotofacil\Concurso::class, \App\Policies\Lotofacil\ConcursoPolicy::class);
+        Gate::policy(\App\Models\Lotofacil\LotofacilFechamento::class, \App\Policies\Lotofacil\LotofacilFechamentoPolicy::class);
+        Gate::policy(\App\Models\Lotofacil\EstrategiaFechamento::class, \App\Policies\Lotofacil\EstrategiaFechamentoPolicy::class);
+        Gate::policy(\App\Models\Lotofacil\Combinacao18::class, \App\Policies\Lotofacil\Combinacao18Policy::class);
+
+        // Registro de Policies dos Recursos Mega-Sena
+        Gate::policy(\App\Models\Megasena\Bolao::class, \App\Policies\Megasena\BolaoPolicy::class);
+        Gate::policy(\App\Models\Megasena\Concurso::class, \App\Policies\Megasena\ConcursoPolicy::class);
+        Gate::policy(\App\Models\Megasena\MegasenaFechamento::class, \App\Policies\Megasena\MegasenaFechamentoPolicy::class);
+
+        // Registro de Policy de Roles (Shield)
+        Gate::policy(\Spatie\Permission\Models\Role::class, \App\Policies\RolePolicy::class);
     }
 }

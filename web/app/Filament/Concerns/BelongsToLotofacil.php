@@ -8,16 +8,44 @@ trait BelongsToLotofacil
 {
     public static function canViewAny(): bool
     {
-        return Filament::getTenant()?->slug === 'lotofacil';
+        if (Filament::getTenant()?->slug !== 'lotofacil') {
+            return false;
+        }
+
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        $permission = 'View:' . class_basename(static::class);
+        if (\Spatie\Permission\Models\Permission::where('name', $permission)->exists()) {
+            return $user->can($permission);
+        }
+
+        return true;
     }
 
     public static function canAccess(): bool
     {
-        return Filament::getTenant()?->slug === 'lotofacil';
+        if (Filament::getTenant()?->slug !== 'lotofacil') {
+            return false;
+        }
+
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        $permission = 'View:' . class_basename(static::class);
+        if (\Spatie\Permission\Models\Permission::where('name', $permission)->exists()) {
+            return $user->can($permission);
+        }
+
+        return true;
     }
 
     public static function canAccessClusteredComponents(): bool
     {
-        return Filament::getTenant()?->slug === 'lotofacil';
+        return static::canAccess();
     }
 }

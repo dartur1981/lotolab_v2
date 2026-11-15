@@ -41,11 +41,20 @@ class UserForm
                             ),
 
                         Select::make('roles')
-                            ->label('Papéis (Permissões Shield)')
+                            ->label('Perfis de Acesso (Roles)')
                             ->relationship('roles', 'name')
                             ->multiple()
                             ->preload()
-                            ->searchable(),
+                            ->searchable()
+                            ->helperText('Associe um ou mais perfis pré-configurados no Shield.'),
+
+                        Select::make('permissions')
+                            ->label('Permissões Diretas do Usuário')
+                            ->relationship('permissions', 'name')
+                            ->multiple()
+                            ->preload()
+                            ->searchable()
+                            ->helperText('Permissões concedidas diretamente a este usuário (além dos perfis).'),
 
                         Select::make('loterias')
                             ->label('Loterias Autorizadas (Tenancy)')
