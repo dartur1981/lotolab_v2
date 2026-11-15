@@ -150,7 +150,7 @@
                             $isFull = $subCount >= $maxSub && $maxSub > 0;
                         @endphp
 
-                        <div class="bg-[#162032] border {{ $isFull ? 'border-emerald-500/70 shadow-emerald-950/50' : 'border-slate-800/90' }} rounded-xl p-2 flex flex-col items-center justify-between shadow-md transition-all">
+                        <div class="bg-[#162032] border {{ $isFull ? 'border-emerald-500/70 shadow-emerald-950/50' : 'border-slate-800/90' }} rounded-xl p-2.5 flex flex-col items-center justify-between shadow-md transition-all {{ ($subIdx % 5 === 0) ? 'col-span-2 max-w-[180px] mx-auto w-full' : '' }}">
                             
                             <!-- Header do Sub-Quadrante -->
                             <div class="w-full flex items-center justify-between text-[10px] mb-2 px-1">
@@ -160,18 +160,47 @@
                                 </span>
                             </div>
 
-                            <!-- Grade 2x2 do Sub-Quadrante -->
-                            <div class="grid grid-cols-2 gap-2 justify-items-center">
-                                @foreach([$n1, $n2, $n3, $n4] as $dezena)
+                            <!-- Grade 2x2 do Sub-Quadrante: Linha Superior e Linha Inferior -->
+                            <div class="flex flex-col items-center gap-2">
+                                <!-- Linha Superior: n1 e n2 -->
+                                <div class="flex items-center gap-2">
                                     <button 
                                         type="button" 
-                                        wire:click="toggleDezena({{ $dezena }})" 
-                                        :style="getBallStyle({{ $dezena }})"
+                                        wire:click="toggleDezena({{ $n1 }})" 
+                                        :style="getBallStyle({{ $n1 }})"
                                         class="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs shadow-md transition-all active:scale-90"
                                     >
-                                        {{ str_pad($dezena, 2, '0', STR_PAD_LEFT) }}
+                                        {{ str_pad($n1, 2, '0', STR_PAD_LEFT) }}
                                     </button>
-                                @endforeach
+                                    <button 
+                                        type="button" 
+                                        wire:click="toggleDezena({{ $n2 }})" 
+                                        :style="getBallStyle({{ $n2 }})"
+                                        class="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs shadow-md transition-all active:scale-90"
+                                    >
+                                        {{ str_pad($n2, 2, '0', STR_PAD_LEFT) }}
+                                    </button>
+                                </div>
+
+                                <!-- Linha Inferior: n3 e n4 -->
+                                <div class="flex items-center gap-2">
+                                    <button 
+                                        type="button" 
+                                        wire:click="toggleDezena({{ $n3 }})" 
+                                        :style="getBallStyle({{ $n3 }})"
+                                        class="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs shadow-md transition-all active:scale-90"
+                                    >
+                                        {{ str_pad($n3, 2, '0', STR_PAD_LEFT) }}
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        wire:click="toggleDezena({{ $n4 }})" 
+                                        :style="getBallStyle({{ $n4 }})"
+                                        class="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs shadow-md transition-all active:scale-90"
+                                    >
+                                        {{ str_pad($n4, 2, '0', STR_PAD_LEFT) }}
+                                    </button>
+                                </div>
                             </div>
 
                         </div>
