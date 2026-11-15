@@ -97,11 +97,19 @@
                 </div>
                 <div class="p-2.5 rounded-xl bg-[#243044]/60 border border-slate-700/50">
                     <span class="text-slate-400 block text-[10px]">Limite Q1 (01-20)</span>
-                    <strong class="text-white text-sm font-bold">{{ $bolaoAtivo['max_quadrante_1'] ?? 'Auto' }}</strong>
+                    <strong class="text-white text-sm font-bold">{{ $bolaoAtivo['max_quadrante_1'] ?? '2' }}</strong>
                 </div>
                 <div class="p-2.5 rounded-xl bg-[#243044]/60 border border-slate-700/50">
                     <span class="text-slate-400 block text-[10px]">Limite Q2 (21-40)</span>
-                    <strong class="text-white text-sm font-bold">{{ $bolaoAtivo['max_quadrante_2'] ?? 'Auto' }}</strong>
+                    <strong class="text-white text-sm font-bold">{{ $bolaoAtivo['max_quadrante_2'] ?? '2' }}</strong>
+                </div>
+                <div class="p-2.5 rounded-xl bg-[#243044]/60 border border-slate-700/50">
+                    <span class="text-slate-400 block text-[10px]">Limite Q3 (41-60)</span>
+                    <strong class="text-white text-sm font-bold">{{ $bolaoAtivo['max_quadrante_3'] ?? '2' }}</strong>
+                </div>
+                <div class="p-2.5 rounded-xl bg-[#243044]/60 border border-slate-700/50">
+                    <span class="text-slate-400 block text-[10px]">Máx. Sub-Quadrante</span>
+                    <strong class="text-white text-sm font-bold">{{ $bolaoAtivo['max_sub_quadrante'] ?? '1' }}</strong>
                 </div>
             </div>
         </div>

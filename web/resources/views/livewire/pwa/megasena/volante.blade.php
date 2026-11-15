@@ -18,14 +18,14 @@
                 if (this.minhas.includes(num)) {
                     return 'background: #059669; color: white; outline: 2px solid #10b981; outline-offset: 2px;';
                 }
-                return 'opacity: 0.4; cursor: not-allowed;';
+                return 'opacity: 0.35; cursor: not-allowed;';
             }
 
             if (this.minhas.includes(num)) {
-                return 'background: radial-gradient(circle at 35% 35%, #86efac, #16a34a 55%, #14532d); color: white; outline: 2px solid #22c55e; outline-offset: 2px; box-shadow: 0 0 14px rgba(34,197,94,0.6);';
+                return 'background: radial-gradient(circle at 35% 35%, #86efac, #16a34a 55%, #14532d); color: white; outline: 2px solid #22c55e; outline-offset: 2px; box-shadow: 0 0 12px rgba(34,197,94,0.6);';
             }
             if (this.outros.includes(num)) {
-                return 'background: #334155; color: #94a3b8; opacity: 0.5; cursor: not-allowed;';
+                return 'background: #334155; color: #94a3b8; opacity: 0.45; cursor: not-allowed;';
             }
             
             const temp = this.tendencias[num] || 'frio';
@@ -47,30 +47,41 @@
             <div 
                 x-text="toast.message" 
                 :class="toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'"
-                class="px-4 py-2 rounded-xl text-xs font-bold shadow-xl border border-white/20 transition-all duration-300 transform translate-y-0"
+                class="px-4 py-2.5 rounded-xl text-xs font-bold shadow-2xl border border-white/20 transition-all duration-300 transform translate-y-0 text-center max-w-sm pointer-events-auto"
             ></div>
         </template>
     </div>
 
-    <!-- Top Bar / Header de Status da Cota -->
-    <div class="flex justify-between items-end px-2">
-        <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Sua Cota na Mega-Sena</span>
-            <div class="text-sm font-bold text-white mt-0.5">
-                <template x-if="(limitePessoal - minhas.length) > 0">
-                    <span>Faltam <strong class="text-emerald-400 text-base" x-text="limitePessoal - minhas.length"></strong> dezenas</span>
-                </template>
-                <template x-if="(limitePessoal - minhas.length) <= 0">
-                    <span class="text-emerald-400 font-bold flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        Cota Completa!
-                    </span>
-                </template>
+    <!-- Top Bar / Header de Status da Cota e Regras -->
+    <div class="bg-[#162032] border border-slate-800 rounded-2xl p-3 shadow-lg space-y-2">
+        <div class="flex justify-between items-center">
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Sua Cota na Mega-Sena</span>
+                <div class="text-sm font-bold text-white mt-0.5">
+                    <template x-if="(limitePessoal - minhas.length) > 0">
+                        <span>Faltam <strong class="text-emerald-400 text-base" x-text="limitePessoal - minhas.length"></strong> dezenas</span>
+                    </template>
+                    <template x-if="(limitePessoal - minhas.length) <= 0">
+                        <span class="text-emerald-400 font-bold flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            Cota Completa!
+                        </span>
+                    </template>
+                </div>
+            </div>
+
+            <div class="text-right">
+                <span class="text-xs font-extrabold px-3 py-1.5 rounded-xl bg-[#243044] border border-slate-700/80 text-emerald-400">
+                    {{ count($minhasDezenas) }} / {{ $limitePessoal }} marcadas
+                </span>
             </div>
         </div>
 
-        <div class="text-right text-xs text-slate-400 font-medium mb-1">
-            <span>{{ count($minhasDezenas) }} / {{ $limitePessoal }} marcadas</span>
+        <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-300">
+            <span class="text-slate-400">Regra de Distribuição:</span>
+            <span class="font-semibold text-emerald-400">
+                Até 2 por Quadrante · Máx. {{ $maxSub }} por Sub-Quadrante
+            </span>
         </div>
     </div>
 
@@ -94,69 +105,76 @@
         </div>
     </div>
 
-    <!-- Volante 1 a 60 Dividido em 3 Quadrantes -->
-    <div class="space-y-4">
+    <!-- Os 3 Quadrantes com 5 Sub-Quadrantes (Blocos 2x2) cada -->
+    <div class="space-y-5">
+        @foreach($quadrantesDef as $q)
+            @php
+                $qColor = match($q['id']) {
+                    1 => ['border' => 'border-sky-800/80', 'text' => 'text-sky-400', 'badge' => 'bg-sky-950/80 text-sky-300 border-sky-700/60'],
+                    2 => ['border' => 'border-indigo-800/80', 'text' => 'text-indigo-400', 'badge' => 'bg-indigo-950/80 text-indigo-300 border-indigo-700/60'],
+                    default => ['border' => 'border-purple-800/80', 'text' => 'text-purple-400', 'badge' => 'bg-purple-950/80 text-purple-300 border-purple-700/60'],
+                };
+            @endphp
 
-        <!-- Quadrante 1 (01 a 20) -->
-        <fieldset class="border-2 border-sky-800/80 rounded-2xl p-3 bg-[#162032] relative shadow-lg">
-            <legend class="text-xs font-bold text-sky-400 px-2.5 bg-[#162032] rounded-md border border-sky-800/60 shadow-sm flex items-center gap-1">
-                <span>Quadrante 1 (01 a 20)</span>
-                <span class="text-[10px] text-slate-400 font-normal">({{ $q1Count }}/{{ $bolaoAtivo['max_quadrante_1'] ?? 'Auto' }})</span>
-            </legend>
-            <div class="grid grid-cols-5 gap-2 justify-items-center pt-2">
-                @for ($n = 1; $n <= 20; $n++)
-                    <button 
-                        type="button" 
-                        wire:click="toggleDezena({{ $n }})" 
-                        :style="getBallStyle({{ $n }})"
-                        class="w-11 h-11 rounded-full flex items-center justify-center font-extrabold text-sm shadow-md transition-all active:scale-90"
-                    >
-                        {{ str_pad($n, 2, '0', STR_PAD_LEFT) }}
-                    </button>
-                @endfor
+            <div class="border-2 {{ $qColor['border'] }} rounded-2xl p-3 bg-[#111827] shadow-xl relative">
+                
+                <!-- Cabeçalho do Quadrante -->
+                <div class="flex items-center justify-between mb-3 px-1">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full {{ $q['id'] == 1 ? 'bg-sky-400' : ($q['id'] == 2 ? 'bg-indigo-400' : 'bg-purple-400') }}"></span>
+                        <h3 class="text-xs font-black uppercase tracking-wider {{ $qColor['text'] }}">
+                            {{ $q['label'] }}
+                        </h3>
+                    </div>
+                    
+                    <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full border {{ $qColor['badge'] }}">
+                        {{ $q['count'] }} / {{ $q['max'] }}
+                    </span>
+                </div>
+
+                <!-- Grid de 5 Sub-Quadrantes (Blocos 2x2) -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    @for($subIdx = $q['sub_start']; $subIdx <= $q['sub_end']; $subIdx++)
+                        @php
+                            $startNum = ($subIdx - 1) * 4 + 1;
+                            $n1 = $startNum;
+                            $n2 = $startNum + 1;
+                            $n3 = $startNum + 2;
+                            $n4 = $startNum + 3;
+                            $subCount = $stats['subs'][$subIdx] ?? 0;
+                            $isFull = $subCount >= $maxSub && $maxSub > 0;
+                        @endphp
+
+                        <div class="bg-[#162032] border {{ $isFull ? 'border-emerald-500/70 shadow-emerald-950/50' : 'border-slate-800/90' }} rounded-xl p-2 flex flex-col items-center justify-between shadow-md transition-all">
+                            
+                            <!-- Header do Sub-Quadrante -->
+                            <div class="w-full flex items-center justify-between text-[10px] mb-2 px-1">
+                                <span class="font-bold text-slate-400">Sub-{{ $subIdx }}</span>
+                                <span class="font-extrabold {{ $isFull ? 'text-emerald-400' : ($subCount > 0 ? 'text-amber-400' : 'text-slate-500') }}">
+                                    {{ $subCount }}/{{ $maxSub }}
+                                </span>
+                            </div>
+
+                            <!-- Grade 2x2 do Sub-Quadrante -->
+                            <div class="grid grid-cols-2 gap-2 justify-items-center">
+                                @foreach([$n1, $n2, $n3, $n4] as $dezena)
+                                    <button 
+                                        type="button" 
+                                        wire:click="toggleDezena({{ $dezena }})" 
+                                        :style="getBallStyle({{ $dezena }})"
+                                        class="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs shadow-md transition-all active:scale-90"
+                                    >
+                                        {{ str_pad($dezena, 2, '0', STR_PAD_LEFT) }}
+                                    </button>
+                                @endforeach
+                            </div>
+
+                        </div>
+                    @endfor
+                </div>
+
             </div>
-        </fieldset>
-
-        <!-- Quadrante 2 (21 a 40) -->
-        <fieldset class="border-2 border-indigo-800/80 rounded-2xl p-3 bg-[#162032] relative shadow-lg">
-            <legend class="text-xs font-bold text-indigo-400 px-2.5 bg-[#162032] rounded-md border border-indigo-800/60 shadow-sm flex items-center gap-1">
-                <span>Quadrante 2 (21 a 40)</span>
-                <span class="text-[10px] text-slate-400 font-normal">({{ $q2Count }}/{{ $bolaoAtivo['max_quadrante_2'] ?? 'Auto' }})</span>
-            </legend>
-            <div class="grid grid-cols-5 gap-2 justify-items-center pt-2">
-                @for ($n = 21; $n <= 40; $n++)
-                    <button 
-                        type="button" 
-                        wire:click="toggleDezena({{ $n }})" 
-                        :style="getBallStyle({{ $n }})"
-                        class="w-11 h-11 rounded-full flex items-center justify-center font-extrabold text-sm shadow-md transition-all active:scale-90"
-                    >
-                        {{ str_pad($n, 2, '0', STR_PAD_LEFT) }}
-                    </button>
-                @endfor
-            </div>
-        </fieldset>
-
-        <!-- Quadrante 3 (41 a 60) -->
-        <fieldset class="border-2 border-purple-800/80 rounded-2xl p-3 bg-[#162032] relative shadow-lg">
-            <legend class="text-xs font-bold text-purple-400 px-2.5 bg-[#162032] rounded-md border border-purple-800/60 shadow-sm flex items-center gap-1">
-                <span>Quadrante 3 (41 a 60)</span>
-                <span class="text-[10px] text-slate-400 font-normal">({{ $q3Count }}/{{ $bolaoAtivo['max_quadrante_3'] ?? 'Auto' }})</span>
-            </legend>
-            <div class="grid grid-cols-5 gap-2 justify-items-center pt-2">
-                @for ($n = 41; $n <= 60; $n++)
-                    <button 
-                        type="button" 
-                        wire:click="toggleDezena({{ $n }})" 
-                        :style="getBallStyle({{ $n }})"
-                        class="w-11 h-11 rounded-full flex items-center justify-center font-extrabold text-sm shadow-md transition-all active:scale-90"
-                    >
-                        {{ str_pad($n, 2, '0', STR_PAD_LEFT) }}
-                    </button>
-                @endfor
-            </div>
-        </fieldset>
-
+        @endforeach
     </div>
 
 </div>

@@ -19,6 +19,16 @@ class Volante extends Component
     public ?array $bolaoAtivo = null;
     public bool $isLocked = false;
 
+    public array $stats = [
+        'q1' => 0,
+        'q2' => 0,
+        'q3' => 0,
+        'subs' => [],
+        'pares' => 0,
+        'impares' => 0,
+        'soma' => 0,
+    ];
+
     public function mount()
     {
         if (!auth()->check()) {
@@ -88,6 +98,42 @@ class Volante extends Component
         $totalSelecionadas = count($this->minhasDezenas) + count($this->dezenasOutros);
         $totalBolao = $this->bolaoAtivo['total_numeros'] ?? 60;
         $this->isLocked = ($this->bolaoAtivo['status'] == 2) || ($totalSelecionadas >= $totalBolao);
+
+        $this->calcularStats();
+    }
+
+    public function calcularStats()
+    {
+        $q1 = $q2 = $q3 = $pares = $soma = 0;
+        $subs = array_fill(1, 15, 0);
+
+        foreach ($this->minhasDezenas as $d) {
+            $soma += $d;
+            if ($d % 2 == 0) $pares++;
+
+            if ($d <= 20) {
+                $q1++;
+            } elseif ($d <= 40) {
+                $q2++;
+            } else {
+                $q3++;
+            }
+
+            $subIndex = (int) floor(($d - 1) / 4) + 1;
+            if (isset($subs[$subIndex])) {
+                $subs[$subIndex]++;
+            }
+        }
+
+        $this->stats = [
+            'q1' => $q1,
+            'q2' => $q2,
+            'q3' => $q3,
+            'subs' => $subs,
+            'pares' => $pares,
+            'impares' => count($this->minhasDezenas) - $pares,
+            'soma' => $soma,
+        ];
     }
 
     public function toggleDezena(int $num)
@@ -115,31 +161,42 @@ class Volante extends Component
             return;
         }
 
-        // Limite pessoal
+        // Limite pessoal da cota
         if ($this->limitePessoal > 0 && count($this->minhasDezenas) >= $this->limitePessoal) {
             $this->dispatch('toast', message: "Você já atingiu sua cota de {$this->limitePessoal} dezenas!", type: 'error');
             return;
         }
 
-        // Validação de Quadrante Global do Bolão (Q1, Q2, Q3)
-        $todasDezenasComNova = array_merge($this->minhasDezenas, $this->dezenasOutros, [$num]);
-        
-        $q1Count = count(array_filter($todasDezenasComNova, fn($d) => $d <= 20));
-        $q2Count = count(array_filter($todasDezenasComNova, fn($d) => $d >= 21 && $d <= 40));
-        $q3Count = count(array_filter($todasDezenasComNova, fn($d) => $d >= 41 && $d <= 60));
+        // Recalcula stats atuais das minhas dezenas
+        $this->calcularStats();
 
-        if ($num <= 20 && isset($this->bolaoAtivo['max_quadrante_1']) && $q1Count > (int)$this->bolaoAtivo['max_quadrante_1']) {
-            $this->dispatch('toast', message: "Limite do Quadrante 1 (01 a 20) atingido no bolão!", type: 'error');
-            return;
+        // Validação da Quantidade Permitida por Quadrante (Q1, Q2, Q3) na cota do usuário
+        if ($num <= 20) {
+            $maxQ = (int) ($this->bolaoAtivo['max_quadrante_1'] ?? 2);
+            if ($maxQ > 0 && $this->stats['q1'] >= $maxQ) {
+                $this->dispatch('toast', message: "Limite atingido: máximo de {$maxQ} número(s) no Quadrante 1 (01 a 20).", type: 'error');
+                return;
+            }
+        } elseif ($num <= 40) {
+            $maxQ = (int) ($this->bolaoAtivo['max_quadrante_2'] ?? 2);
+            if ($maxQ > 0 && $this->stats['q2'] >= $maxQ) {
+                $this->dispatch('toast', message: "Limite atingido: máximo de {$maxQ} número(s) no Quadrante 2 (21 a 40).", type: 'error');
+                return;
+            }
+        } else {
+            $maxQ = (int) ($this->bolaoAtivo['max_quadrante_3'] ?? 2);
+            if ($maxQ > 0 && $this->stats['q3'] >= $maxQ) {
+                $this->dispatch('toast', message: "Limite atingido: máximo de {$maxQ} número(s) no Quadrante 3 (41 a 60).", type: 'error');
+                return;
+            }
         }
 
-        if ($num >= 21 && $num <= 40 && isset($this->bolaoAtivo['max_quadrante_2']) && $q2Count > (int)$this->bolaoAtivo['max_quadrante_2']) {
-            $this->dispatch('toast', message: "Limite do Quadrante 2 (21 a 40) atingido no bolão!", type: 'error');
-            return;
-        }
+        // Validação da Quantidade Permitida por Sub-Quadrante (Bloco 2x2)
+        $subIndex = (int) floor(($num - 1) / 4) + 1;
+        $maxSub = (int) ($this->bolaoAtivo['max_sub_quadrante'] ?? 1);
 
-        if ($num >= 41 && isset($this->bolaoAtivo['max_quadrante_3']) && $q3Count > (int)$this->bolaoAtivo['max_quadrante_3']) {
-            $this->dispatch('toast', message: "Limite do Quadrante 3 (41 a 60) atingido no bolão!", type: 'error');
+        if ($maxSub > 0 && ($this->stats['subs'][$subIndex] ?? 0) >= $maxSub) {
+            $this->dispatch('toast', message: "Limite atingido: máximo de {$maxSub} número(s) no Sub-Quadrante {$subIndex}.", type: 'error');
             return;
         }
 
@@ -162,20 +219,72 @@ class Volante extends Component
                 'updated_at' => now(),
             ]);
 
+        $this->calcularStats();
+        $this->verificarConclusaoBolao();
+
         $this->dispatch('toast', message: 'Dezena salva com sucesso!', type: 'success');
+    }
+
+    public function verificarConclusaoBolao()
+    {
+        if (!$this->bolaoAtivo || $this->bolaoAtivo['status'] == 2) return;
+
+        $registros = DB::table('megasena_bolao_user')
+            ->where('megasena_bolao_id', $this->bolaoId)
+            ->get();
+
+        $totalMarcadas = 0;
+        foreach ($registros as $r) {
+            $selecionadas = json_decode($r->numeros_selecionados, true) ?? [];
+            $totalMarcadas += count($selecionadas);
+        }
+
+        $totalBolao = $this->bolaoAtivo['total_numeros'] ?? 60;
+        if ($totalMarcadas >= $totalBolao) {
+            Bolao::where('id', $this->bolaoId)->update(['status' => 2]);
+            $this->bolaoAtivo['status'] = 2;
+            $this->isLocked = true;
+            $this->dispatch('toast', message: 'Bolão completo e encerrado!', type: 'success');
+        }
     }
 
     public function render()
     {
-        $todas = array_merge($this->minhasDezenas, $this->dezenasOutros);
-        $q1 = count(array_filter($todas, fn($d) => $d <= 20));
-        $q2 = count(array_filter($todas, fn($d) => $d >= 21 && $d <= 40));
-        $q3 = count(array_filter($todas, fn($d) => $d >= 41 && $d <= 60));
+        $maxQ1 = (int) ($this->bolaoAtivo['max_quadrante_1'] ?? 2);
+        $maxQ2 = (int) ($this->bolaoAtivo['max_quadrante_2'] ?? 2);
+        $maxQ3 = (int) ($this->bolaoAtivo['max_quadrante_3'] ?? 2);
+        $maxSub = (int) ($this->bolaoAtivo['max_sub_quadrante'] ?? 1);
+
+        $quadrantesDef = [
+            [
+                'id' => 1,
+                'label' => 'Quadrante 1 (01 a 20)',
+                'count' => $this->stats['q1'],
+                'max' => $maxQ1,
+                'sub_start' => 1,
+                'sub_end' => 5,
+            ],
+            [
+                'id' => 2,
+                'label' => 'Quadrante 2 (21 a 40)',
+                'count' => $this->stats['q2'],
+                'max' => $maxQ2,
+                'sub_start' => 6,
+                'sub_end' => 10,
+            ],
+            [
+                'id' => 3,
+                'label' => 'Quadrante 3 (41 a 60)',
+                'count' => $this->stats['q3'],
+                'max' => $maxQ3,
+                'sub_start' => 11,
+                'sub_end' => 15,
+            ],
+        ];
 
         return view('livewire.pwa.megasena.volante', [
-            'q1Count' => $q1,
-            'q2Count' => $q2,
-            'q3Count' => $q3,
+            'quadrantesDef' => $quadrantesDef,
+            'maxSub' => $maxSub,
         ])->layout('components.layouts.pwa', [
             'title' => 'Volante Mega-Sena - LotoLab',
             'showNav' => true,
