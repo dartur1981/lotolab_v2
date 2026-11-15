@@ -139,6 +139,10 @@
                                 $n4 = $linhaBase + $colStart + 11;
 
                                 $subCount = $stats['subs'][$subGlobalIdx] ?? 0;
+                                $maxSub = (int) ($bolaoAtivo->max_sub_quadrante ?? 1);
+                                $isSubFull = $maxSub > 0 && $subCount >= $maxSub;
+                                $isQuadFull = $quadrante['max'] > 0 && $quadrante['count'] >= $quadrante['max'];
+                                $isBlocked = ($isSubFull || $isQuadFull);
                             @endphp
                             <div style="
                                 border: 1px solid #1a1e27;
@@ -154,13 +158,13 @@
                             ">
                                 {{-- Linha Superior do Bloco 2x2 --}}
                                 <div style="display: flex; gap: 0.6rem; margin-bottom: 0.6rem;">
-                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n1])
-                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n2])
+                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n1, 'isBlocked' => $isBlocked])
+                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n2, 'isBlocked' => $isBlocked])
                                 </div>
                                 {{-- Linha Inferior do Bloco 2x2 --}}
                                 <div style="display: flex; gap: 0.6rem;">
-                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n3])
-                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n4])
+                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n3, 'isBlocked' => $isBlocked])
+                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n4, 'isBlocked' => $isBlocked])
                                 </div>
                             </div>
                         @endfor

@@ -107,10 +107,17 @@ class Volante extends Component
         $q1 = $q2 = $q3 = $pares = $soma = 0;
         $subs = array_fill(1, 15, 0);
 
+        // Estatísticas pessoais (minhas dezenas)
         foreach ($this->minhasDezenas as $d) {
             $soma += $d;
             if ($d % 2 == 0) $pares++;
+        }
 
+        // Estatísticas consolidadas do bolão (minhas + dezenas dos outros participantes)
+        // Os limites de Quadrantes e Sub-Quadrantes aplicam-se ao pool total do bolão
+        $todasDezenas = array_unique(array_merge($this->minhasDezenas, $this->dezenasOutros));
+
+        foreach ($todasDezenas as $d) {
             if ($d <= 20) {
                 $q1++;
             } elseif ($d <= 40) {
@@ -151,15 +158,18 @@ class Volante extends Component
             return;
         }
 
-        if (in_array($num, $this->dezenasOutros)) {
-            $this->dispatch('toast', message: 'Dezena já escolhida por outro participante!', type: 'error');
-            return;
-        }
-
-        // Se já está selecionada por mim, desmarca
+        // Se já está selecionada por mim, desmarca imediatamente
         if (in_array($num, $this->minhasDezenas)) {
             $this->minhasDezenas = array_values(array_diff($this->minhasDezenas, [$num]));
             $this->salvarSelecoes();
+            return;
+        }
+
+        // Recarrega as dezenas dos outros participantes do banco em tempo real para evitar condições de corrida
+        $this->refreshBoard();
+
+        if (in_array($num, $this->dezenasOutros)) {
+            $this->dispatch('toast', message: 'Dezena já escolhida por outro participante!', type: 'error');
             return;
         }
 
@@ -169,10 +179,7 @@ class Volante extends Component
             return;
         }
 
-        // Recalcula stats atuais das minhas dezenas
-        $this->calcularStats();
-
-        // Validação da Quantidade Permitida por Quadrante (Q1, Q2, Q3) na cota do usuário
+        // Validação da Quantidade Permitida por Quadrante (Q1, Q2, Q3) no bolão
         if ($num <= 20) {
             $maxQ = (int) ($this->bolaoAtivo['max_quadrante_1'] ?? 2);
             if ($maxQ > 0 && $this->stats['q1'] >= $maxQ) {
@@ -193,14 +200,14 @@ class Volante extends Component
             }
         }
 
-        // Validação da Quantidade Permitida por Sub-Quadrante (Bloco 2x2 do volante)
+        // Validação da Quantidade Permitida por Sub-Quadrante (Bloco 2x2 do volante) no bolão
         $linha = (int) floor(($num - 1) / 10);
         $coluna = ($num - 1) % 10;
         $subIndex = ((int) floor($linha / 2) * 5) + (int) floor($coluna / 2) + 1;
         $maxSub = (int) ($this->bolaoAtivo['max_sub_quadrante'] ?? 1);
 
         if ($maxSub > 0 && ($this->stats['subs'][$subIndex] ?? 0) >= $maxSub) {
-            $this->dispatch('toast', message: "Limite atingido: máximo de {$maxSub} número(s) no Sub-Quadrante {$subIndex}.", type: 'error');
+            $this->dispatch('toast', message: "Limite atingido: o Sub-Quadrante {$subIndex} já possui o máximo de {$maxSub} número(s) no bolão.", type: 'error');
             return;
         }
 

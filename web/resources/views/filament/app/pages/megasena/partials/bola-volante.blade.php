@@ -1,6 +1,7 @@
 @php
     $isMinha = in_array($numero, $minhasDezenas);
     $isOutro = in_array($numero, $dezenasOutros);
+    $isBlocked = $isBlocked ?? false;
 
     if ($isMinha) {
         $bg = 'radial-gradient(circle at 35% 30%, #6ee7b7 0%, #10b981 35%, #059669 70%, #064e3b 100%)';
@@ -10,14 +11,25 @@
         $cursor = 'pointer';
         $border = 'none';
         $opacity = '1';
+        $disabled = false;
     } elseif ($isOutro) {
-        $bg = 'radial-gradient(circle at 35% 30%, #475569 0%, #334155 50%, #1e293b 100%)';
-        $shadow = 'inset -1px -1px 3px rgba(0, 0, 0, 0.6)';
-        $textColor = '#64748b';
+        $bg = 'radial-gradient(circle at 35% 30%, #f1f5f9 0%, #cbd5e1 32%, #94a3b8 70%, #64748b 100%)';
+        $shadow = '0 3px 5px -1px rgba(0,0,0,0.5), inset 2px 2px 4px rgba(255,255,255,0.95), inset -2px -2px 5px rgba(0,0,0,0.35)';
+        $textColor = '#1e293b';
+        $textShadow = '0 1px 0 rgba(255,255,255,0.8)';
+        $cursor = 'not-allowed';
+        $border = 'none';
+        $opacity = '0.9';
+        $disabled = true;
+    } elseif ($isBlocked || $isLocked) {
+        $bg = '#141824';
+        $shadow = 'inset 0 1px 2px rgba(0, 0, 0, 0.5)';
+        $textColor = '#334155';
         $textShadow = 'none';
         $cursor = 'not-allowed';
-        $border = '1px solid #334155';
-        $opacity = '0.4';
+        $border = '1px solid #1e2433';
+        $opacity = '0.35';
+        $disabled = true;
     } else {
         // Estilo Esfera 3D Prata/Cinza idêntica à imagem
         $bg = 'radial-gradient(circle at 35% 30%, #f1f5f9 0%, #cbd5e1 32%, #94a3b8 70%, #64748b 100%)';
@@ -27,13 +39,14 @@
         $cursor = 'pointer';
         $border = 'none';
         $opacity = '1';
+        $disabled = false;
     }
 @endphp
 
 <button 
     type="button"
     wire:click="toggleNumero({{ $numero }})"
-    @if($isOutro || $isLocked) disabled @endif
+    @if($disabled) disabled @endif
     style="
         width: 38px;
         height: 38px;
@@ -54,7 +67,7 @@
         user-select: none;
         transition: transform 0.12s ease-in-out, filter 0.12s ease-in-out;
     "
-    onmouseover="if (!{{ $isOutro || $isLocked ? 'true' : 'false' }}) { this.style.transform='scale(1.12)'; this.style.filter='brightness(1.08)'; }"
+    onmouseover="if (!{{ $disabled ? 'true' : 'false' }}) { this.style.transform='scale(1.12)'; this.style.filter='brightness(1.08)'; }"
     onmouseout="this.style.transform='scale(1)'; this.style.filter='brightness(1)';"
     title="Dezena {{ str_pad($numero, 2, '0', STR_PAD_LEFT) }}"
 >

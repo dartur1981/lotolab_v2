@@ -103,56 +103,74 @@ class SelecionarNumeros extends Page implements HasForms
             return;
         }
 
-        $meuLimite = $this->bolaoAtivo->getLimiteDezenasForUser(auth()->id());
+        $numero = (int) $numero;
 
+        // Se já está selecionada por mim, desmarca imediatamente
         if (in_array($numero, $this->minhasDezenas)) {
             $this->minhasDezenas = array_values(array_diff($this->minhasDezenas, [$numero]));
-        } else {
-            if (count($this->minhasDezenas) >= $meuLimite) {
-                Notification::make()->title("Limite de {$meuLimite} dezenas atingido.")->warning()->send();
-                return;
-            }
 
-            if (in_array($numero, $this->dezenasOutros)) {
-                Notification::make()->title('Esta dezena já foi escolhida por outro participante.')->danger()->send();
-                return;
-            }
+            DB::table('megasena_bolao_user')
+                ->where('megasena_bolao_id', $this->bolaoAtivo->id)
+                ->where('user_id', auth()->id())
+                ->update([
+                    'numeros_selecionados' => json_encode($this->minhasDezenas),
+                    'updated_at' => now(),
+                ]);
 
-            // Validação da Quantidade Permitida por Quadrante
-            if ($numero <= 20) {
-                $maxQ = $this->bolaoAtivo->max_quadrante_1 ?? 2;
-                if ($this->stats['q1'] >= $maxQ) {
-                    Notification::make()->title("Limite atingido: máximo de {$maxQ} número(s) permitido(s) no Quadrante 1 (01 a 20).")->warning()->send();
-                    return;
-                }
-            } elseif ($numero <= 40) {
-                $maxQ = $this->bolaoAtivo->max_quadrante_2 ?? 2;
-                if ($this->stats['q2'] >= $maxQ) {
-                    Notification::make()->title("Limite atingido: máximo de {$maxQ} número(s) permitido(s) no Quadrante 2 (21 a 40).")->warning()->send();
-                    return;
-                }
-            } else {
-                $maxQ = $this->bolaoAtivo->max_quadrante_3 ?? 2;
-                if ($this->stats['q3'] >= $maxQ) {
-                    Notification::make()->title("Limite atingido: máximo de {$maxQ} número(s) permitido(s) no Quadrante 3 (41 a 60).")->warning()->send();
-                    return;
-                }
-            }
-
-            // Validação da Quantidade Permitida por Sub-Quadrante (Bloco 2x2 do volante)
-            $linha = (int) floor(($numero - 1) / 10);
-            $coluna = ($numero - 1) % 10;
-            $subIndex = ((int) floor($linha / 2) * 5) + (int) floor($coluna / 2) + 1;
-            $maxSub = $this->bolaoAtivo->max_sub_quadrante ?? 1;
-
-            if ($maxSub > 0 && ($this->stats['subs'][$subIndex] ?? 0) >= $maxSub) {
-                Notification::make()->title("Limite atingido: máximo de {$maxSub} número(s) permitido(s) no Sub-Quadrante {$subIndex}.")->warning()->send();
-                return;
-            }
-
-            $this->minhasDezenas[] = (int) $numero;
-            sort($this->minhasDezenas);
+            $this->calcularStats();
+            $this->verificarConclusaoBolao();
+            return;
         }
+
+        // Recarrega as dezenas dos outros participantes em tempo real para evitar concorrência
+        $this->carregarDezenasOutros();
+
+        $meuLimite = $this->bolaoAtivo->getLimiteDezenasForUser(auth()->id());
+
+        if (count($this->minhasDezenas) >= $meuLimite) {
+            Notification::make()->title("Limite de {$meuLimite} dezenas da sua cota atingido.")->warning()->send();
+            return;
+        }
+
+        if (in_array($numero, $this->dezenasOutros)) {
+            Notification::make()->title('Esta dezena já foi escolhida por outro participante.')->danger()->send();
+            return;
+        }
+
+        // Validação da Quantidade Permitida por Quadrante no bolão
+        if ($numero <= 20) {
+            $maxQ = $this->bolaoAtivo->max_quadrante_1 ?? 2;
+            if ($maxQ > 0 && $this->stats['q1'] >= $maxQ) {
+                Notification::make()->title("Limite atingido: máximo de {$maxQ} número(s) permitido(s) no Quadrante 1 (01 a 20).")->warning()->send();
+                return;
+            }
+        } elseif ($numero <= 40) {
+            $maxQ = $this->bolaoAtivo->max_quadrante_2 ?? 2;
+            if ($maxQ > 0 && $this->stats['q2'] >= $maxQ) {
+                Notification::make()->title("Limite atingido: máximo de {$maxQ} número(s) permitido(s) no Quadrante 2 (21 a 40).")->warning()->send();
+                return;
+            }
+        } else {
+            $maxQ = $this->bolaoAtivo->max_quadrante_3 ?? 2;
+            if ($maxQ > 0 && $this->stats['q3'] >= $maxQ) {
+                Notification::make()->title("Limite atingido: máximo de {$maxQ} número(s) permitido(s) no Quadrante 3 (41 a 60).")->warning()->send();
+                return;
+            }
+        }
+
+        // Validação da Quantidade Permitida por Sub-Quadrante (Bloco 2x2 do volante) no bolão
+        $linha = (int) floor(($numero - 1) / 10);
+        $coluna = ($numero - 1) % 10;
+        $subIndex = ((int) floor($linha / 2) * 5) + (int) floor($coluna / 2) + 1;
+        $maxSub = $this->bolaoAtivo->max_sub_quadrante ?? 1;
+
+        if ($maxSub > 0 && ($this->stats['subs'][$subIndex] ?? 0) >= $maxSub) {
+            Notification::make()->title("Limite atingido: o Sub-Quadrante {$subIndex} já possui o máximo de {$maxSub} número(s) no bolão.")->warning()->send();
+            return;
+        }
+
+        $this->minhasDezenas[] = $numero;
+        sort($this->minhasDezenas);
 
         DB::table('megasena_bolao_user')
             ->where('megasena_bolao_id', $this->bolaoAtivo->id)
@@ -180,7 +198,8 @@ class SelecionarNumeros extends Page implements HasForms
                 $arr = array_merge($arr, $decoded);
             }
         }
-        $this->dezenasOutros = array_unique($arr);
+        $this->dezenasOutros = array_map('intval', array_unique($arr));
+        $this->calcularStats();
     }
 
     public function calcularStats()
@@ -188,18 +207,21 @@ class SelecionarNumeros extends Page implements HasForms
         $q1 = $q2 = $q3 = $pares = $soma = 0;
         $subs = array_fill(1, 15, 0);
 
+        // Estatísticas pessoais (minhas dezenas)
         foreach ($this->minhasDezenas as $d) {
             $soma += $d;
             if ($d % 2 == 0) $pares++;
+        }
 
+        // Estatísticas consolidadas do bolão (minhas + dezenas dos outros participantes)
+        $todasDezenas = array_unique(array_merge($this->minhasDezenas, $this->dezenasOutros));
+
+        foreach ($todasDezenas as $d) {
             if ($d <= 20) {
-                $q = 1;
                 $q1++;
             } elseif ($d <= 40) {
-                $q = 2;
                 $q2++;
             } else {
-                $q = 3;
                 $q3++;
             }
 

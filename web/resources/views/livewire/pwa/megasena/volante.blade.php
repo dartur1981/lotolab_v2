@@ -1,4 +1,5 @@
 <div 
+    wire:poll.3s="refreshBoard"
     x-data="{
         minhas: @entangle('minhasDezenas'),
         outros: @entangle('dezenasOutros'),
@@ -13,29 +14,33 @@
                 this.toasts = this.toasts.filter(t => t.id !== id);
             }, 3000);
         },
-        getBallStyle(num) {
+        getBallStyle(num, isBlocked = false) {
             if (this.isLocked) {
                 if (this.minhas.includes(num)) {
                     return 'background: #059669; color: white; outline: 2px solid #10b981; outline-offset: 2px;';
                 }
-                return 'opacity: 0.35; cursor: not-allowed;';
+                return 'background: #131722; color: #334155; opacity: 0.35; cursor: not-allowed; border: 1px solid #1e2433;';
             }
 
             if (this.minhas.includes(num)) {
-                return 'background: radial-gradient(circle at 35% 35%, #86efac, #16a34a 55%, #14532d); color: white; outline: 2px solid #22c55e; outline-offset: 2px; box-shadow: 0 0 12px rgba(34,197,94,0.6);';
+                return 'background: radial-gradient(circle at 35% 35%, #86efac, #16a34a 55%, #14532d); color: white; outline: 2px solid #22c55e; outline-offset: 2px; box-shadow: 0 0 12px rgba(34,197,94,0.6); cursor: pointer;';
             }
             if (this.outros.includes(num)) {
-                return 'background: #334155; color: #94a3b8; opacity: 0.45; cursor: not-allowed;';
+                return 'background: radial-gradient(circle at 35% 30%, #f1f5f9 0%, #cbd5e1 32%, #94a3b8 70%, #64748b 100%); color: #475569; cursor: not-allowed; box-shadow: 0 2px 4px rgba(0,0,0,0.4);';
+            }
+
+            if (isBlocked) {
+                return 'background: #131722; color: #334155; opacity: 0.35; cursor: not-allowed; border: 1px solid #1e2433;';
             }
             
             const temp = this.tendencias[num] || 'frio';
             if (temp === 'quente') {
-                return 'background: radial-gradient(circle at 35% 35%, #fca5a5, #dc2626 55%, #7f1d1d); color: white;';
+                return 'background: radial-gradient(circle at 35% 35%, #fca5a5, #dc2626 55%, #7f1d1d); color: white; cursor: pointer;';
             }
             if (temp === 'morno') {
-                return 'background: radial-gradient(circle at 35% 35%, #fde68a, #d97706 55%, #78350f); color: white;';
+                return 'background: radial-gradient(circle at 35% 35%, #fde68a, #d97706 55%, #78350f); color: white; cursor: pointer;';
             }
-            return 'background: radial-gradient(circle at 35% 35%, #93c5fd, #1d4ed8 55%, #1e1b4b); color: white;';
+            return 'background: radial-gradient(circle at 35% 35%, #93c5fd, #1d4ed8 55%, #1e1b4b); color: white; cursor: pointer;';
         }
     }"
     x-on:toast.window="showToast($event.detail.message, $event.detail.type)"
@@ -148,6 +153,8 @@
 
                             $subCount = $stats['subs'][$subIdx] ?? 0;
                             $isFull = $subCount >= $maxSub && $maxSub > 0;
+                            $isQuadFull = $q['max'] > 0 && $q['count'] >= $q['max'];
+                            $isBlocked = ($isFull || $isQuadFull);
                         @endphp
 
                         <div class="bg-[#162032] border {{ $isFull ? 'border-emerald-500/70 shadow-emerald-950/50' : 'border-slate-800/90' }} rounded-xl p-2 flex flex-col items-center justify-between shadow-md transition-all">
@@ -166,7 +173,7 @@
                                     <button 
                                         type="button" 
                                         wire:click="toggleDezena({{ $dezena }})" 
-                                        :style="getBallStyle({{ $dezena }})"
+                                        :style="getBallStyle({{ $dezena }}, {{ $isBlocked ? 'true' : 'false' }})"
                                         class="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-xs shadow-md transition-all active:scale-90"
                                     >
                                         {{ str_pad($dezena, 2, '0', STR_PAD_LEFT) }}
