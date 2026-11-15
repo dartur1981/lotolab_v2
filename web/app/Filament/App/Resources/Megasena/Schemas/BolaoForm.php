@@ -206,6 +206,155 @@ class BolaoForm
                             ->hidden()
                             ->default(0),
                     ]),
+
+                Section::make('Dezenas Selecionadas pelos Participantes (Progresso em Tempo Real)')
+                    ->description('Visualize as dezenas escolhidas por cada participante e a formação do pool geral de dezenas do bolão.')
+                    ->schema([
+                        Placeholder::make('selecoes_participantes_painel')
+                            ->hiddenLabel()
+                            ->columnSpanFull()
+                            ->content(function ($record) {
+                                if (!$record || !$record->exists) {
+                                    return new \Illuminate\Support\HtmlString(
+                                        '<div class="p-4 text-sm text-gray-400 bg-gray-900 rounded-xl border border-gray-800 flex items-center gap-3">
+                                            <span class="text-xl">ℹ️</span>
+                                            <div>
+                                                <strong class="text-gray-200">Novo Bolão:</strong>
+                                                <p class="text-xs text-gray-400 mt-0.5">Após salvar este cadastro, as dezenas selecionadas por cada participante serão exibidas aqui em tempo real.</p>
+                                            </div>
+                                        </div>'
+                                    );
+                                }
+
+                                $pivotRecords = \Illuminate\Support\Facades\DB::table('megasena_bolao_user')
+                                    ->where('megasena_bolao_id', $record->id)
+                                    ->orderBy('id')
+                                    ->get();
+
+                                if ($pivotRecords->isEmpty()) {
+                                    return new \Illuminate\Support\HtmlString(
+                                        '<div class="p-4 text-sm text-amber-300 bg-amber-950/40 rounded-xl border border-amber-800/60">
+                                            ⚠️ Nenhum participante vinculado a este bolão até o momento.
+                                        </div>'
+                                    );
+                                }
+
+                                $userIds = $pivotRecords->pluck('user_id')->toArray();
+                                $users = \App\Models\User::whereIn('id', $userIds)->get()->keyBy('id');
+
+                                $totalEsperado = (int) $record->total_numeros;
+                                $poolDezenas = [];
+                                $totalPreenchidos = 0;
+
+                                $cardsHtml = '';
+                                foreach ($pivotRecords as $pivot) {
+                                    $user = $users->get($pivot->user_id);
+                                    $nome = $user ? $user->name : "Participante #{$pivot->user_id}";
+                                    $email = $user ? $user->email : '';
+
+                                    $limite = $record->getLimiteDezenasForUser($pivot->user_id);
+                                    $selecoes = is_string($pivot->numeros_selecionados) 
+                                        ? json_decode($pivot->numeros_selecionados, true) 
+                                        : ($pivot->numeros_selecionados ?? []);
+                                    
+                                    if (!is_array($selecoes)) {
+                                        $selecoes = [];
+                                    }
+                                    sort($selecoes);
+
+                                    $qtdSelecionada = count($selecoes);
+                                    if ($qtdSelecionada >= $limite) {
+                                        $totalPreenchidos++;
+                                    }
+
+                                    foreach ($selecoes as $num) {
+                                        $poolDezenas[$num] = true;
+                                    }
+
+                                    $isCompleto = ($qtdSelecionada >= $limite);
+                                    $statusBadge = $isCompleto 
+                                        ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-600">Concluído (' . $qtdSelecionada . '/' . $limite . ')</span>'
+                                        : ($qtdSelecionada === 0 
+                                            ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-600">Pendente (0/' . $limite . ')</span>'
+                                            : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-600">Incompleto (' . $qtdSelecionada . '/' . $limite . ')</span>');
+
+                                    // Renderização das bolinhas do participante
+                                    $bolasHtml = '';
+                                    if (!empty($selecoes)) {
+                                        $bolasHtml .= '<div class="flex flex-wrap gap-1.5 mt-2">';
+                                        foreach ($selecoes as $n) {
+                                            $nStr = str_pad($n, 2, '0', STR_PAD_LEFT);
+                                            $bolasHtml .= '<span class="inline-flex items-center justify-center w-7 h-7 text-xs font-bold text-white bg-emerald-600 rounded-full shadow-sm shadow-emerald-900 border border-emerald-400/50">' . $nStr . '</span>';
+                                        }
+                                        $bolasHtml .= '</div>';
+                                    } else {
+                                        $bolasHtml .= '<p class="text-xs text-gray-500 italic mt-2">Nenhum número selecionado ainda</p>';
+                                    }
+
+                                    $cardsHtml .= '
+                                    <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800 flex flex-col justify-between">
+                                        <div>
+                                            <div class="flex items-center justify-between gap-2">
+                                                <div class="truncate">
+                                                    <h4 class="text-sm font-semibold text-gray-100 truncate">' . e($nome) . '</h4>
+                                                    <p class="text-[11px] text-gray-400 truncate">' . e($email) . '</p>
+                                                </div>
+                                                <div>' . $statusBadge . '</div>
+                                            </div>
+                                            ' . $bolasHtml . '
+                                        </div>
+                                    </div>';
+                                }
+
+                                ksort($poolDezenas);
+                                $dezenasPoolArray = array_keys($poolDezenas);
+                                $totalPoolAtual = count($dezenasPoolArray);
+
+                                // Header com Pool Consolidado
+                                $poolHtml = '';
+                                if (!empty($dezenasPoolArray)) {
+                                    $poolHtml .= '<div class="flex flex-wrap gap-1.5 mt-2">';
+                                    foreach ($dezenasPoolArray as $dp) {
+                                        $dpStr = str_pad($dp, 2, '0', STR_PAD_LEFT);
+                                        // Cor por quadrante (Q1: Azul, Q2: Indigo, Q3: Roxo)
+                                        $corBg = ($dp <= 20) ? 'bg-sky-600 border-sky-400' : (($dp <= 40) ? 'bg-indigo-600 border-indigo-400' : 'bg-purple-600 border-purple-400');
+                                        $poolHtml .= '<span class="inline-flex items-center justify-center w-8 h-8 text-xs font-black text-white ' . $corBg . ' rounded-lg shadow-sm border">' . $dpStr . '</span>';
+                                    }
+                                    $poolHtml .= '</div>';
+                                } else {
+                                    $poolHtml .= '<p class="text-xs text-gray-500 italic mt-1">Nenhuma dezena registrada no pool ainda.</p>';
+                                }
+
+                                $totalMembros = count($pivotRecords);
+                                $progressoMembros = "{$totalPreenchidos} de {$totalMembros} membros concluíram a seleção";
+
+                                return new \Illuminate\Support\HtmlString('
+                                    <div class="space-y-4">
+                                        <!-- Card do Pool Consolidado -->
+                                        <div class="p-4 bg-gray-950 rounded-xl border border-gray-800">
+                                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 pb-3">
+                                                <div>
+                                                    <span class="text-xs text-gray-400 uppercase tracking-wider font-semibold">Pool Consolidado de Dezenas:</span>
+                                                    <span class="ml-1 text-emerald-400 font-bold text-base">' . $totalPoolAtual . ' / ' . $totalEsperado . ' dezenas</span>
+                                                </div>
+                                                <div class="text-xs text-gray-300 font-medium">
+                                                    👥 ' . $progressoMembros . '
+                                                </div>
+                                            </div>
+                                            <div class="pt-2">
+                                                <span class="text-[11px] text-gray-400 font-medium">Dezenas Únicas Escolhidas (Quadrantes Q1: Azul | Q2: Índigo | Q3: Roxo):</span>
+                                                ' . $poolHtml . '
+                                            </div>
+                                        </div>
+
+                                        <!-- Grid com as Dezenas de Cada Participante -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                            ' . $cardsHtml . '
+                                        </div>
+                                    </div>
+                                ');
+                            }),
+                    ]),
             ]);
     }
 

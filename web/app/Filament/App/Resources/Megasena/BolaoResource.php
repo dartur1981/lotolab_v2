@@ -5,6 +5,7 @@ namespace App\Filament\App\Resources\Megasena;
 use App\Filament\App\Resources\Megasena\Pages\CreateBolao;
 use App\Filament\App\Resources\Megasena\Pages\EditBolao;
 use App\Filament\App\Resources\Megasena\Pages\ListBolaos;
+use App\Filament\App\Resources\Megasena\RelationManagers\ParticipantesRelationManager;
 use App\Filament\App\Resources\Megasena\Schemas\BolaoForm;
 use App\Filament\App\Resources\Megasena\Tables\BolaosTable;
 use App\Filament\Concerns\BelongsToMegasena;
@@ -39,6 +40,13 @@ class BolaoResource extends Resource
     public static function table(Table $table): Table
     {
         return BolaosTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            ParticipantesRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
