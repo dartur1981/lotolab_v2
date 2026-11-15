@@ -119,7 +119,9 @@ class Volante extends Component
                 $q3++;
             }
 
-            $subIndex = (int) floor(($d - 1) / 4) + 1;
+            $linha = (int) floor(($d - 1) / 10);
+            $coluna = ($d - 1) % 10;
+            $subIndex = ((int) floor($linha / 2) * 5) + (int) floor($coluna / 2) + 1;
             if (isset($subs[$subIndex])) {
                 $subs[$subIndex]++;
             }
@@ -191,8 +193,10 @@ class Volante extends Component
             }
         }
 
-        // Validação da Quantidade Permitida por Sub-Quadrante (Bloco 2x2)
-        $subIndex = (int) floor(($num - 1) / 4) + 1;
+        // Validação da Quantidade Permitida por Sub-Quadrante (Bloco 2x2 do volante)
+        $linha = (int) floor(($num - 1) / 10);
+        $coluna = ($num - 1) % 10;
+        $subIndex = ((int) floor($linha / 2) * 5) + (int) floor($coluna / 2) + 1;
         $maxSub = (int) ($this->bolaoAtivo['max_sub_quadrante'] ?? 1);
 
         if ($maxSub > 0 && ($this->stats['subs'][$subIndex] ?? 0) >= $maxSub) {

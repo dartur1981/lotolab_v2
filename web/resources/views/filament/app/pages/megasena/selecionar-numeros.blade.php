@@ -128,11 +128,15 @@
                         @for($col = 1; $col <= 5; $col++)
                             @php
                                 $subGlobalIdx = ($quadrante['id'] - 1) * 5 + $col;
-                                $start = ($subGlobalIdx - 1) * 4 + 1;
-                                $n1 = $start;
-                                $n2 = $start + 1;
-                                $n3 = $start + 2;
-                                $n4 = $start + 3;
+                                $qIdx = $quadrante['id'] - 1; // 0, 1, 2
+                                $blocoCol = $col - 1; // 0, 1, 2, 3, 4
+                                $linhaBase = $qIdx * 20;
+                                $colStart = $blocoCol * 2 + 1;
+
+                                $n1 = $linhaBase + $colStart;
+                                $n2 = $linhaBase + $colStart + 1;
+                                $n3 = $linhaBase + $colStart + 10;
+                                $n4 = $linhaBase + $colStart + 11;
 
                                 $subCount = $stats['subs'][$subGlobalIdx] ?? 0;
                             @endphp

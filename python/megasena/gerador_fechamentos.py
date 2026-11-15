@@ -25,7 +25,9 @@ def calc_quadrante(n: int) -> int:
         return 3
 
 def calc_sub_quadrante(n: int) -> int:
-    return (n - 1) // 4 + 1
+    linha = (n - 1) // 10
+    coluna = (n - 1) % 10
+    return (linha // 2) * 5 + (coluna // 2) + 1
 
 def avaliar_jogo_megasena(jogo: Tuple[int, ...], mapa_temperatura: Optional[Dict[int, str]] = None) -> Tuple[int, bool]:
     score = 100

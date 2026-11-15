@@ -138,12 +138,14 @@ class SelecionarNumeros extends Page implements HasForms
                 }
             }
 
-            // Validação da Quantidade Permitida por Sub-Quadrante (Bloco 2x2)
-            $subIndex = (int) floor(($numero - 1) / 4) + 1;
+            // Validação da Quantidade Permitida por Sub-Quadrante (Bloco 2x2 do volante)
+            $linha = (int) floor(($numero - 1) / 10);
+            $coluna = ($numero - 1) % 10;
+            $subIndex = ((int) floor($linha / 2) * 5) + (int) floor($coluna / 2) + 1;
             $maxSub = $this->bolaoAtivo->max_sub_quadrante ?? 1;
 
             if ($maxSub > 0 && ($this->stats['subs'][$subIndex] ?? 0) >= $maxSub) {
-                Notification::make()->title("Limite atingido: máximo de {$maxSub} número(s) permitido(s) neste Sub-Quadrante.")->warning()->send();
+                Notification::make()->title("Limite atingido: máximo de {$maxSub} número(s) permitido(s) no Sub-Quadrante {$subIndex}.")->warning()->send();
                 return;
             }
 
@@ -200,7 +202,9 @@ class SelecionarNumeros extends Page implements HasForms
                 $q3++;
             }
 
-            $subIndex = (int) floor(($d - 1) / 4) + 1;
+            $linha = (int) floor(($d - 1) / 10);
+            $coluna = ($d - 1) % 10;
+            $subIndex = ((int) floor($linha / 2) * 5) + (int) floor($coluna / 2) + 1;
 
             if (isset($subs[$subIndex])) {
                 $subs[$subIndex]++;

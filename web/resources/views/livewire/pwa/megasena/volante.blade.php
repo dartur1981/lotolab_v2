@@ -136,11 +136,16 @@
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     @for($subIdx = $q['sub_start']; $subIdx <= $q['sub_end']; $subIdx++)
                         @php
-                            $startNum = ($subIdx - 1) * 4 + 1;
-                            $n1 = $startNum;
-                            $n2 = $startNum + 1;
-                            $n3 = $startNum + 2;
-                            $n4 = $startNum + 3;
+                            $qIdx = $q['id'] - 1; // 0, 1, 2
+                            $blocoCol = ($subIdx - 1) % 5; // 0, 1, 2, 3, 4
+                            $linhaBase = $qIdx * 20;
+                            $colStart = $blocoCol * 2 + 1;
+
+                            $n1 = $linhaBase + $colStart;
+                            $n2 = $linhaBase + $colStart + 1;
+                            $n3 = $linhaBase + $colStart + 10;
+                            $n4 = $linhaBase + $colStart + 11;
+
                             $subCount = $stats['subs'][$subIdx] ?? 0;
                             $isFull = $subCount >= $maxSub && $maxSub > 0;
                         @endphp
