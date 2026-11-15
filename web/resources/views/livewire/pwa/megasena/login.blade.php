@@ -51,12 +51,6 @@
                     </div>
                 @endforelse
             </div>
-            
-            <div class="mt-4 pt-3 border-t border-slate-800 text-center">
-                <a href="/pwa/lotofacil/login" class="text-xs text-purple-400 hover:text-purple-300 font-medium transition">
-                    Ir para o Bolão da Lotofácil &rarr;
-                </a>
-            </div>
 
         @else
             <!-- Passo 2: Confirmação -->

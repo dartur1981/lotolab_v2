@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             headers: Request::HEADER_X_FORWARDED_FOR |
                      Request::HEADER_X_FORWARDED_PROTO
         );
+
+        $middleware->alias([
+            'loteria.isolada' => \App\Http\Middleware\EnsureLoteriaIsolada::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
