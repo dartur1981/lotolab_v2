@@ -34,6 +34,13 @@ except Exception as e:
 
 app = FastAPI(title="Lotolab Python API", version="1.0.0")
 
+try:
+    from megasena.router import router as megasena_router
+    app.include_router(megasena_router)
+    print("Router da Mega-Sena registrado com sucesso!")
+except Exception as e:
+    print(f"Aviso ao carregar router da Mega-Sena: {e}")
+
 @app.get("/")
 @app.get("/health")
 def api_health():

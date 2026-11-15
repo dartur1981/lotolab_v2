@@ -4,6 +4,7 @@ namespace App\Filament\Clusters\Estrategias\Resources\Lotofacil\Combinacao18s;
 
 use App\Filament\Clusters\Estrategias\EstrategiasCluster;
 use App\Filament\Clusters\Estrategias\Resources\Lotofacil\Combinacao18s\Pages\ManageCombinacao18s;
+use App\Filament\Concerns\BelongsToLotofacil;
 use App\Models\Lotofacil\Combinacao18;
 use BackedEnum;
 use Filament\Forms\Components\TextInput;
@@ -14,6 +15,8 @@ use Filament\Tables\Table;
 
 class Combinacao18Resource extends Resource
 {
+    use BelongsToLotofacil;
+
     protected static ?string $model = Combinacao18::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-group';

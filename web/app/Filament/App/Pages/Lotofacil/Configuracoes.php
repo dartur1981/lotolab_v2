@@ -2,6 +2,7 @@
 
 namespace App\Filament\App\Pages\Lotofacil;
 
+use App\Filament\Concerns\BelongsToLotofacil;
 use Filament\Pages\Page;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -15,7 +16,7 @@ use Filament\Forms\Components\Toggle;
 
 class Configuracoes extends Page implements HasForms
 {
-    use InteractsWithForms;
+    use InteractsWithForms, BelongsToLotofacil;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
     protected static ?string $navigationLabel = 'Configurações';

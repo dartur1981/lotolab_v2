@@ -9,6 +9,7 @@ use App\Filament\App\Resources\Lotofacil\EstrategiaFechamentos\Pages\ViewEstrate
 use App\Filament\App\Resources\Lotofacil\EstrategiaFechamentos\Schemas\EstrategiaFechamentoForm;
 use App\Filament\App\Resources\Lotofacil\EstrategiaFechamentos\Schemas\EstrategiaFechamentoInfolist;
 use App\Filament\App\Resources\Lotofacil\EstrategiaFechamentos\Tables\EstrategiaFechamentosTable;
+use App\Filament\Concerns\BelongsToLotofacil;
 use App\Models\Lotofacil\EstrategiaFechamento;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -18,6 +19,8 @@ use Filament\Tables\Table;
 
 class EstrategiaFechamentoResource extends Resource
 {
+    use BelongsToLotofacil;
+
     protected static ?string $model = EstrategiaFechamento::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-stack';

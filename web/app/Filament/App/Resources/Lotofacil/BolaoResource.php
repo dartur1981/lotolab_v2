@@ -8,6 +8,7 @@ use App\Filament\App\Resources\Lotofacil\Pages\EditBolao;
 use App\Filament\App\Resources\Lotofacil\Pages\ListBolaos;
 use App\Filament\App\Resources\Lotofacil\Schemas\BolaoForm;
 use App\Filament\App\Resources\Lotofacil\Tables\BolaosTable;
+use App\Filament\Concerns\BelongsToLotofacil;
 use App\Models\Lotofacil\Bolao;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -17,6 +18,8 @@ use Filament\Tables\Table;
 
 class BolaoResource extends Resource
 {
+    use BelongsToLotofacil;
+
     protected static ?string $model = Bolao::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;

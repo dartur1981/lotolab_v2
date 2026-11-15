@@ -11,6 +11,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./python/lotofacil:/app/lotofacil
+      - ./python/megasena:/app/megasena
       - ./logs:/logs
       - ./data:/data
       - ./logs:/var/www/logs

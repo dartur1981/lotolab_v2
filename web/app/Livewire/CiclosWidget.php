@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use Filament\Widgets\Widget;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\DB;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -12,6 +13,11 @@ use Filament\Forms\Components\Select;
 class CiclosWidget extends Widget implements HasForms
 {
     use InteractsWithForms;
+
+    public static function canView(): bool
+    {
+        return Filament::getTenant()?->slug === 'lotofacil';
+    }
 
     protected string $view = 'livewire.ciclos-widget';
     protected int | string | array $columnSpan = 'full';

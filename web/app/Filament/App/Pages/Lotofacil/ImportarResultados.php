@@ -2,6 +2,7 @@
 
 namespace App\Filament\App\Pages\Lotofacil;
 
+use App\Filament\Concerns\BelongsToLotofacil;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\FileUpload;
@@ -17,7 +18,7 @@ use Illuminate\Support\Str;
 
 class ImportarResultados extends Page implements HasForms
 {
-    use InteractsWithForms;
+    use InteractsWithForms, BelongsToLotofacil;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
     protected string $view = 'filament.app.pages.lotofacil.importar-resultados';

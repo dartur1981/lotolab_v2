@@ -3,10 +3,16 @@
 namespace App\Filament\App\Widgets;
 
 use Filament\Widgets\Widget;
+use Filament\Facades\Filament;
 use Illuminate\Support\Facades\File;
 
 class BotLogViewerWidget extends Widget
 {
+    public static function canView(): bool
+    {
+        return Filament::getTenant()?->slug === 'lotofacil';
+    }
+
     protected string $view = 'livewire.bot-log-viewer';
 
     public $logContent = '';

@@ -47,6 +47,11 @@ class User extends Authenticatable implements HasTenants, FilamentUser
         return $this->belongsToMany(\App\Models\Lotofacil\Bolao::class, 'lotofacil_bolao_user', 'user_id', 'lotofacil_bolao_id');
     }
 
+    public function megasenaBoloes()
+    {
+        return $this->belongsToMany(\App\Models\Megasena\Bolao::class, 'megasena_bolao_user', 'user_id', 'megasena_bolao_id');
+    }
+
     public function getTenants(Panel $panel): array|Collection
     {
         return $this->loterias;

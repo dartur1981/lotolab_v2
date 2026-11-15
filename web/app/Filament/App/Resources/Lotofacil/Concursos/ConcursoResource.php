@@ -3,6 +3,7 @@
 namespace App\Filament\App\Resources\Lotofacil\Concursos;
 
 use App\Filament\App\Resources\Lotofacil\Concursos\Pages\ManageConcursos;
+use App\Filament\Concerns\BelongsToLotofacil;
 use App\Models\Lotofacil\Concurso;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -19,6 +20,8 @@ use Filament\Tables\Table;
 
 class ConcursoResource extends Resource
 {
+    use BelongsToLotofacil;
+
     protected static ?string $model = Concurso::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;

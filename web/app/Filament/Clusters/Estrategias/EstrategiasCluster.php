@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Estrategias;
 
+use App\Filament\Concerns\BelongsToLotofacil;
 use BackedEnum;
 use Filament\Clusters\Cluster;
 use Filament\Support\Icons\Heroicon;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class EstrategiasCluster extends Cluster
 {
+    use BelongsToLotofacil;
+
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-light-bulb';
     protected static string|\UnitEnum|null $navigationGroup = 'Lotofácil';
     protected static ?int $navigationSort = 100;

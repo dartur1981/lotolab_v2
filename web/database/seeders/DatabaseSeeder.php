@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $loteria = Loteria::firstOrCreate(
+        $lotofacil = Loteria::firstOrCreate(
             ['slug' => 'lotofacil'],
             [
                 'nome' => 'Lotofácil',
@@ -27,8 +27,19 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        $megasena = Loteria::firstOrCreate(
+            ['slug' => 'megasena'],
+            [
+                'nome' => 'Mega-Sena',
+                'total_de_numeros' => 60,
+                'numeros_por_jogo' => 6,
+                'cor_padrao' => '#209869',
+                'ativo' => true,
+            ]
+        );
+
         foreach (User::all() as $user) {
-            $user->loterias()->syncWithoutDetaching([$loteria->id]);
+            $user->loterias()->syncWithoutDetaching([$lotofacil->id, $megasena->id]);
         }
     }
 }

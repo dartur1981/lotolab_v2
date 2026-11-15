@@ -1,0 +1,70 @@
+<?php
+
+namespace App\Models\Megasena;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class MegasenaFechamento extends Model
+{
+    use HasFactory;
+
+    protected $table = 'megasena_fechamentos';
+
+    protected $fillable = [
+        'bolao_id',
+        'quantidade_jogos',
+        'dezenas',
+        'resultado',
+    ];
+
+    protected $casts = [
+        'dezenas' => 'array',
+        'resultado' => 'array',
+    ];
+
+    public function bolao(): BelongsTo
+    {
+        return $this->belongsTo(Bolao::class, 'bolao_id');
+    }
+
+    public function jogos(): HasMany
+    {
+        return $this->hasMany(MegasenaFechamentoJogo::class, 'fechamento_id');
+    }
+
+    protected static function booted()
+    {
+        static::saved(function ($fechamento) {
+            if (!empty($fechamento->resultado)) {
+                $resultado = $fechamento->resultado;
+                if (is_string($resultado)) {
+                    $resultado = json_decode($resultado, true) ?? [];
+                }
+                
+                if (is_array($resultado) && count($resultado) > 0) {
+                    $resultadoInt = array_map('intval', $resultado);
+                    
+                    foreach ($fechamento->jogos as $jogo) {
+                        $dezenas = $jogo->dezenas;
+                        if (is_string($dezenas)) {
+                            $dezenas = json_decode($dezenas, true) ?? [];
+                        }
+                        if (is_array($dezenas)) {
+                            $dezenasInt = array_map('intval', $dezenas);
+                            $acertos = count(array_intersect($dezenasInt, $resultadoInt));
+                            $jogo->update(['acertos' => $acertos]);
+                        }
+                    }
+                }
+
+                $bolao = $fechamento->bolao;
+                if ($bolao && $bolao->status !== 4) {
+                    $bolao->update(['status' => 4]);
+                }
+            }
+        });
+    }
+}

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters\Estrategias\Pages;
 
+use App\Filament\Concerns\BelongsToLotofacil;
 use Filament\Pages\Page;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
@@ -12,6 +13,8 @@ use App\Livewire\PrevisoesMLWidget;
 
 class Estrategias extends Page
 {
+    use BelongsToLotofacil;
+
     protected static ?string $cluster = \App\Filament\Clusters\Estrategias\EstrategiasCluster::class;
     protected ?string $heading = 'Visão Geral das Estratégias';
     protected static ?string $navigationLabel = 'Visão Geral';

@@ -14,6 +14,7 @@ use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use App\Models\Loteria;
 use App\Livewire\CiclosWidget;
+use App\Livewire\MegasenaCiclosWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -43,6 +44,7 @@ class AppPanelProvider extends PanelProvider
                 AccountWidget::class,
                 FilamentInfoWidget::class,
                 CiclosWidget::class,
+                MegasenaCiclosWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

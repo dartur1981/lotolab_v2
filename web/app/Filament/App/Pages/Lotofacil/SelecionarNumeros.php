@@ -2,6 +2,7 @@
 
 namespace App\Filament\App\Pages\Lotofacil;
 
+use App\Filament\Concerns\BelongsToLotofacil;
 use Filament\Pages\Page;
 use App\Models\Lotofacil\Bolao;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +14,7 @@ use Filament\Forms\Components\Select;
 
 class SelecionarNumeros extends Page implements HasForms
 {
-    use InteractsWithForms;
+    use InteractsWithForms, BelongsToLotofacil;
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-check-circle';
     protected static string|\UnitEnum|null $navigationGroup = 'Lotofácil';
     protected static ?string $title = 'Selecionar Números';
