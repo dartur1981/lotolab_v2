@@ -26,6 +26,7 @@ class Login extends Component
         if ($this->selectedUserId) {
             Auth::loginUsingId($this->selectedUserId, true);
             session()->regenerate();
+            session()->forget('url.intended');
             
             $userId = $this->selectedUserId;
             $boloesAtivos = Bolao::whereHas('users', function($q) use ($userId) {
@@ -44,7 +45,7 @@ class Login extends Component
                 if ($pendingBoloesCount == 1) {
                     session()->put('pwa_quina_bolao_ativo_id', $pendingBoloes->first()->id);
                 }
-                return redirect()->intended('/pwa/quina/dashboard');
+                return redirect('/pwa/quina/dashboard');
             }
         }
     }

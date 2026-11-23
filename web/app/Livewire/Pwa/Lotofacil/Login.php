@@ -24,6 +24,7 @@ class Login extends Component
         if ($this->selectedUserId) {
             Auth::loginUsingId($this->selectedUserId, true);
             session()->regenerate();
+            session()->forget('url.intended');
             
             $userId = $this->selectedUserId;
             $boloesAtivos = \App\Models\Lotofacil\Bolao::whereHas('users', function($q) use ($userId) {
@@ -42,7 +43,7 @@ class Login extends Component
                 if ($pendingBoloesCount == 1) {
                     session()->put('pwa_bolao_ativo_id', $pendingBoloes->first()->id);
                 }
-                return redirect()->intended('/pwa/lotofacil/dashboard');
+                return redirect('/pwa/lotofacil/dashboard');
             }
         }
     }
