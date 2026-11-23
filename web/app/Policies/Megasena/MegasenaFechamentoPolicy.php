@@ -14,62 +14,61 @@ class MegasenaFechamentoPolicy
     
     public function viewAny(AuthUser $authUser): bool
     {
-        return $authUser->can('ViewAny:MegasenaFechamento');
+        return true;
     }
 
     public function view(AuthUser $authUser, MegasenaFechamento $megasenaFechamento): bool
     {
-        return $authUser->can('View:MegasenaFechamento');
+        return true;
     }
 
     public function create(AuthUser $authUser): bool
     {
-        return $authUser->can('Create:MegasenaFechamento');
+        return true;
     }
 
     public function update(AuthUser $authUser, MegasenaFechamento $megasenaFechamento): bool
     {
-        return $authUser->can('Update:MegasenaFechamento');
+        return true;
     }
 
     public function delete(AuthUser $authUser, MegasenaFechamento $megasenaFechamento): bool
     {
-        return $authUser->can('Delete:MegasenaFechamento');
+        return true;
     }
 
     public function deleteAny(AuthUser $authUser): bool
     {
-        return $authUser->can('DeleteAny:MegasenaFechamento');
+        return true;
     }
 
     public function restore(AuthUser $authUser, MegasenaFechamento $megasenaFechamento): bool
     {
-        return $authUser->can('Restore:MegasenaFechamento');
+        return true;
     }
 
     public function forceDelete(AuthUser $authUser, MegasenaFechamento $megasenaFechamento): bool
     {
-        return $authUser->can('ForceDelete:MegasenaFechamento');
+        return true;
     }
 
     public function forceDeleteAny(AuthUser $authUser): bool
     {
-        return $authUser->can('ForceDeleteAny:MegasenaFechamento');
+        return true;
     }
 
     public function restoreAny(AuthUser $authUser): bool
     {
-        return $authUser->can('RestoreAny:MegasenaFechamento');
+        return true;
     }
 
     public function replicate(AuthUser $authUser, MegasenaFechamento $megasenaFechamento): bool
     {
-        return $authUser->can('Replicate:MegasenaFechamento');
+        return true;
     }
 
     public function reorder(AuthUser $authUser): bool
     {
-        return $authUser->can('Reorder:MegasenaFechamento');
+        return true;
     }
-
 }

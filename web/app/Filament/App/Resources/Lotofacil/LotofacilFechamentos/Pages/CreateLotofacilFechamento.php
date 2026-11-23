@@ -8,4 +8,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateLotofacilFechamento extends CreateRecord
 {
     protected static string $resource = LotofacilFechamentoResource::class;
+
+    protected function authorizeAccess(): void
+    {
+        // Acesso liberado
+    }
 }

@@ -100,11 +100,11 @@ class LotofacilBotService
 
     /**
      * Lê os jogos atualmente no carrinho.
-     * Retorna array de jogos (cada jogo é um array de 15 números).
+     * Retorna array de jogos (cada jogo é um array de números).
      */
-    public function lerCarrinho(): array
+    public function lerCarrinho(string $modelType = 'lotofacil'): array
     {
-        $url = "{$this->apiUrl}/bot/ler-carrinho";
+        $url = "{$this->apiUrl}/bot/ler-carrinho?model_type={$modelType}";
         try {
             $response = Http::timeout(120)->post($url);
 

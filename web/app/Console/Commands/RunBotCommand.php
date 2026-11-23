@@ -18,12 +18,29 @@ class RunBotCommand extends Command
         $action = $this->argument('action');
         $idsStr = $this->option('ids');
         $modelType = $this->option('model') ?: 'lotofacil';
+        $logFileName = match ($modelType) {
+            'megasena' => 'bot_megasena.log',
+            'quina' => 'bot_quina.log',
+            default => 'bot_lotofacil.log',
+        };
+        $logPath = base_path('../logs/' . $logFileName);
         
+        $inicioProcesso = now();
+        $inicioMicro = microtime(true);
+
         $apiUrl = $bot->getApiUrl();
         $this->info("Conectando à API Python: {$apiUrl}");
         Log::info("RunBotCommand iniciado com ação: {$action}, IDs: {$idsStr}, Modelo: {$modelType}, API: {$apiUrl}");
-        file_put_contents(base_path('../logs/bot_lotofacil.log'), "Iniciando robô (Ação: {$action}, IDs: {$idsStr})...\nConectando à API Python: {$apiUrl}\n");
-        @chmod(base_path('../logs/bot_lotofacil.log'), 0666);
+        
+        $headerLog = "======================================================\n" .
+                     "              INICIALIZAÇÃO DO ROBÔ\n" .
+                     "======================================================\n" .
+                     "Ação: {$action} | Modelo: {$modelType}\n" .
+                     "Horário de Início : " . $inicioProcesso->format('d/m/Y H:i:s') . "\n" .
+                     "Conectando à API Python: {$apiUrl}\n" .
+                     "======================================================\n\n";
+        file_put_contents($logPath, $headerLog);
+        @chmod($logPath, 0666);
 
         try {
             if ($action === 'lancar') {
@@ -34,6 +51,10 @@ class RunBotCommand extends Command
                 $ids = array_filter(array_map('trim', explode(',', $idsStr)));
                 if ($modelType === 'estrategia') {
                     $jogosRecords = \App\Models\Lotofacil\EstrategiaFechamentoJogo::whereIn('id', $ids)->get();
+                } elseif ($modelType === 'megasena') {
+                    $jogosRecords = \App\Models\Megasena\MegasenaFechamentoJogo::whereIn('id', $ids)->get();
+                } elseif ($modelType === 'quina') {
+                    $jogosRecords = \App\Models\Quina\QuinaFechamentoJogo::whereIn('id', $ids)->get();
                 } else {
                     $jogosRecords = LotofacilFechamentoJogo::whereIn('id', $ids)->get();
                 }
@@ -95,7 +116,7 @@ class RunBotCommand extends Command
                             if (!empty($conciliacao['jogos_extras'])) {
                                 $msg .= "\nAviso: Foram encontrados " . count($conciliacao['jogos_extras']) . " jogos extras no carrinho!";
                             }
-                            file_put_contents(base_path('../logs/bot_lotofacil.log'), $msg, FILE_APPEND);
+                            file_put_contents($logPath, $msg, FILE_APPEND);
                         } else {
                             $motivo = $resultado['motivo_falha'] ?? "Falha ao navegar para o carrinho na Fase 2 (ou ler o carrinho).";
                             throw new \Exception("Fase 1 OK, mas falha na Fase 2: {$motivo}");
@@ -110,15 +131,47 @@ class RunBotCommand extends Command
                 $bot->lerCarrinho();
             }
             
+            $fimProcesso = now();
+            $duracaoSegundos = microtime(true) - $inicioMicro;
+            $horas = floor($duracaoSegundos / 3600);
+            $minutos = floor(($duracaoSegundos % 3600) / 60);
+            $segundos = $duracaoSegundos - ($horas * 3600) - ($minutos * 60);
+            $tempoFormatado = sprintf('%02d:%02d:%05.2f', $horas, $minutos, $segundos);
+
+            $resumoTempo = "\n\n" .
+                "======================================================\n" .
+                "            RESUMO DE TEMPO DO PROCESSO\n" .
+                "======================================================\n" .
+                "Horário de Início : " . $inicioProcesso->format('d/m/Y H:i:s') . "\n" .
+                "Horário de Término: " . $fimProcesso->format('d/m/Y H:i:s') . "\n" .
+                "Tempo Total Levado: " . $tempoFormatado . " (" . number_format($duracaoSegundos, 2, ',', '.') . "s)\n" .
+                "======================================================\n";
+
             // Append completion marker to log file so Livewire knows we are done
-            file_put_contents(base_path('../logs/bot_lotofacil.log'), "\n[BOT_FINISHED_SUCCESS]", FILE_APPEND);
+            file_put_contents($logPath, $resumoTempo . "\n[BOT_FINISHED_SUCCESS]", FILE_APPEND);
             
         } catch (\Throwable $e) {
+            $fimProcesso = now();
+            $duracaoSegundos = microtime(true) - $inicioMicro;
+            $horas = floor($duracaoSegundos / 3600);
+            $minutos = floor(($duracaoSegundos % 3600) / 60);
+            $segundos = $duracaoSegundos - ($horas * 3600) - ($minutos * 60);
+            $tempoFormatado = sprintf('%02d:%02d:%05.2f', $horas, $minutos, $segundos);
+
+            $resumoTempoErro = "\n\n" .
+                "======================================================\n" .
+                "        RESUMO DE TEMPO DO PROCESSO (INTERROMPIDO)\n" .
+                "======================================================\n" .
+                "Horário de Início : " . $inicioProcesso->format('d/m/Y H:i:s') . "\n" .
+                "Horário de Término: " . $fimProcesso->format('d/m/Y H:i:s') . "\n" .
+                "Tempo Total Levado: " . $tempoFormatado . " (" . number_format($duracaoSegundos, 2, ',', '.') . "s)\n" .
+                "======================================================\n";
+
             Log::error("BotCommand Erro: " . $e->getMessage());
             $this->error($e->getMessage());
             // Append error marker and the actual error message
             $errorMessage = "\n\nERRO FATAL PHP/PYTHON:\n" . $e->getMessage();
-            file_put_contents(base_path('../logs/bot_lotofacil.log'), $errorMessage . "\n[BOT_FINISHED_ERROR]", FILE_APPEND);
+            file_put_contents($logPath, $errorMessage . $resumoTempoErro . "\n[BOT_FINISHED_ERROR]", FILE_APPEND);
         } finally {
             $lockFile = base_path('../logs/bot.lock');
             if (file_exists($lockFile)) {

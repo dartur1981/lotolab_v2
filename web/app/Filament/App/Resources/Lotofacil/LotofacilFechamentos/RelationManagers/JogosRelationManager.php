@@ -16,6 +16,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class JogosRelationManager extends RelationManager
 {
@@ -107,61 +108,112 @@ class JogosRelationManager extends RelationManager
     {
         return $table
             ->recordTitleAttribute('id')
+            ->recordClasses(fn ($record) => ((string) $record->status === '4') ? 'bg-emerald-950/20 hover:bg-emerald-950/30' : null)
             ->columns([
                 TextColumn::make('id')
                     ->label('Jogo')
-                    ->formatStateUsing(fn ($rowLoop) => 'J' . str_pad($rowLoop->iteration, 2, '0', STR_PAD_LEFT)),
+                    ->alignCenter()
+                    ->formatStateUsing(function ($record, $rowLoop) {
+                        $num = 'J' . str_pad($rowLoop->iteration, 2, '0', STR_PAD_LEFT);
+                        if ((string) $record->status === '4') {
+                            return new \Illuminate\Support\HtmlString("<span style='display:inline-flex; align-items:center; justify-content:center; gap:0.35rem; font-weight:800; color:#34d399;'><span>{$num}</span><span style='font-size:0.625rem; background:#059669; color:#ffffff; padding:0.1rem 0.35rem; border-radius:9999px; font-weight:800; line-height:1;'>✓</span></span>");
+                        }
+                        return new \Illuminate\Support\HtmlString("<span style='font-weight:700; color:#9ca3af;'>{$num}</span>");
+                    }),
                 
                 TextColumn::make('grupos')
                     ->label('Grupos')
+                    ->alignCenter()
                     ->default('M1: G1+G2+G3')
                     ->color('gray'),
                 
                 \Filament\Tables\Columns\ViewColumn::make('dezenas')
                     ->label('Dezenas')
+                    ->alignCenter()
                     ->view('filament.app.tables.columns.dezenas-jogo'),
                 
                 \Filament\Tables\Columns\ViewColumn::make('acertos')
                     ->label('Acertos')
-                    ->view('filament.app.tables.columns.acertos-jogo')
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->view('filament.app.tables.columns.acertos-jogo'),
                 
                 TextColumn::make('status')
                     ->label('Status')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        '0' => 'gray',
-                        '1' => 'warning',
-                        '3' => 'info',
-                        '4' => 'success',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        '0' => 'Pendente',
-                        '1' => 'Divergente',
-                        '3' => 'Lançado',
-                        '4' => 'Apostado',
-                        default => 'Desconhecido',
+                    ->alignCenter()
+                    ->formatStateUsing(function (string $state): \Illuminate\Support\HtmlString {
+                        return match ($state) {
+                            '4' => new \Illuminate\Support\HtmlString("<span style='display:inline-flex; align-items:center; gap:0.375rem; background:#064e3b; color:#6ee7b7; font-size:0.75rem; font-weight:700; padding:0.25rem 0.65rem; border-radius:0.375rem; border:1px solid rgba(16, 185, 129, 0.4); box-shadow:0 1px 2px rgba(0,0,0,0.1);'><span style='width:0.45rem; height:0.45rem; border-radius:9999px; background:#34d399;'></span>Apostado</span>"),
+                            '3' => new \Illuminate\Support\HtmlString("<span style='display:inline-flex; align-items:center; gap:0.375rem; background:#0c4a6e; color:#7dd3fc; font-size:0.75rem; font-weight:700; padding:0.25rem 0.65rem; border-radius:0.375rem; border:1px solid rgba(14, 165, 233, 0.4);'><span style='width:0.45rem; height:0.45rem; border-radius:9999px; background:#38bdf8;'></span>Lançado</span>"),
+                            '1' => new \Illuminate\Support\HtmlString("<span style='display:inline-flex; align-items:center; gap:0.375rem; background:#78350f; color:#fde68a; font-size:0.75rem; font-weight:700; padding:0.25rem 0.65rem; border-radius:0.375rem; border:1px solid rgba(245, 158, 11, 0.4);'>Divergente</span>"),
+                            default => new \Illuminate\Support\HtmlString("<span style='display:inline-flex; align-items:center; gap:0.375rem; background:#374151; color:#d1d5db; font-size:0.75rem; font-weight:700; padding:0.25rem 0.65rem; border-radius:0.375rem; border:1px solid #4b5563;'>Pendente</span>"),
+                        };
                     }),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->label('Status')
                     ->multiple()
+                    ->native(false)
+                    ->preload()
                     ->options([
                         '0' => 'Pendente',
                         '1' => 'Divergente',
                         '3' => 'Lançado',
                         '4' => 'Apostado',
-                    ]),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = $data['values'] ?? [];
+                        if (!empty($values)) {
+                            return $query->whereIn('status', $values);
+                        }
+                        return $query;
+                    }),
                 SelectFilter::make('acertos')
                     ->label('Acertos')
                     ->multiple()
+                    ->native(false)
+                    ->preload()
                     ->options(
                         collect(range(0, 15))->mapWithKeys(fn ($i) => [(string) $i => $i === 1 ? '1 Acerto' : "$i Acertos"])->toArray()
-                    ),
+                    )
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = $data['values'] ?? [];
+                        if (!empty($values)) {
+                            return $query->whereIn('acertos', $values);
+                        }
+                        return $query;
+                    }),
             ])
             ->headerActions([
+                \Filament\Actions\Action::make('apostar_pendentes')
+                    ->label('Apostar Pendentes')
+                    ->icon('heroicon-o-play')
+                    ->color('primary')
+                    ->disabled(fn () => static::isBotRunning())
+                    ->action(function ($livewire) {
+                        $fechamento = $livewire->getOwnerRecord();
+                        $pendentes = $fechamento->jogos()->whereIn('status', ['0', '1'])->pluck('id')->toArray();
+                        if (empty($pendentes)) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Nenhum jogo pendente para apostar.')
+                                ->info()
+                                ->send();
+                            return;
+                        }
+                        try {
+                            static::executeBackgroundBot('lancar', implode(',', $pendentes), 'lotofacil');
+                            \Filament\Notifications\Notification::make()
+                                ->title(count($pendentes) . ' jogos pendentes enviados para aposta!')
+                                ->success()
+                                ->send();
+                        } catch (\Throwable $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Erro ao lançar')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
                 \Filament\Actions\Action::make('voltar_todos_pendente')
                     ->label('Voltar TODOS para pendente')
                     ->color('danger')

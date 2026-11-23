@@ -16,6 +16,11 @@ class SelecionarNumeros extends Page implements HasForms
 {
     use InteractsWithForms, BelongsToMegasena;
 
+    public function getMaxContentWidth(): \Filament\Support\Enums\Width | string | null
+    {
+        return \Filament\Support\Enums\Width::Full;
+    }
+
     protected static ?string $slug = 'megasena/selecionar-numeros';
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-check-circle';
     protected static string|\UnitEnum|null $navigationGroup = 'Mega-Sena';
@@ -27,6 +32,8 @@ class SelecionarNumeros extends Page implements HasForms
     public $meusBoloes = [];
     public $minhasDezenas = [];
     public $dezenasOutros = [];
+    public $statusUsuarios = [];
+    public $tendencias = [];
     public bool $isLocked = false;
 
     public $stats = [
@@ -37,10 +44,14 @@ class SelecionarNumeros extends Page implements HasForms
         'pares' => 0,
         'impares' => 0,
         'soma' => 0,
+        'quentes' => 0,
+        'mornos' => 0,
+        'frios' => 0,
     ];
 
     public function mount()
     {
+        $this->loadTendencias();
         $this->loadMeusBoloes();
         if ($this->meusBoloes->count() > 0) {
             $this->bolaoSelecionadoId = $this->meusBoloes->first()->id;
@@ -68,6 +79,31 @@ class SelecionarNumeros extends Page implements HasForms
             ]);
     }
 
+    public function loadTendencias()
+    {
+        try {
+            $records = DB::connection('analytics_megasena')->select('SELECT dezena, temperatura FROM tendencias_dezenas_megasena');
+        } catch (\Throwable $e) {
+            try {
+                $dbName = config('database.connections.analytics_megasena.database', 'lotolab_megasena_analytics_v2');
+                $records = DB::select("SELECT dezena, temperatura FROM {$dbName}.tendencias_dezenas_megasena");
+            } catch (\Throwable $e2) {
+                $records = [];
+            }
+        }
+
+        $this->tendencias = [];
+        foreach ($records as $r) {
+            $tempRaw = strtolower(trim($r->temperatura ?? ''));
+            $temp = match($tempRaw) {
+                'quente' => 'quente',
+                'morna', 'morno' => 'morno',
+                default => 'frio',
+            };
+            $this->tendencias[(int)$r->dezena] = $temp;
+        }
+    }
+
     public function loadMeusBoloes()
     {
         $this->meusBoloes = auth()->user()->megasenaBoloes()
@@ -80,6 +116,10 @@ class SelecionarNumeros extends Page implements HasForms
     {
         $this->bolaoAtivo = Bolao::find($bolaoId);
         if (!$this->bolaoAtivo) return;
+
+        if (empty($this->tendencias)) {
+            $this->loadTendencias();
+        }
 
         $this->isLocked = ($this->bolaoAtivo->status == 2);
 
@@ -186,31 +226,69 @@ class SelecionarNumeros extends Page implements HasForms
 
     public function carregarDezenasOutros()
     {
-        $outros = DB::table('megasena_bolao_user')
-            ->where('megasena_bolao_id', $this->bolaoAtivo->id)
-            ->where('user_id', '!=', auth()->id())
-            ->pluck('numeros_selecionados');
+        if (!$this->bolaoAtivo) return;
 
-        $arr = [];
-        foreach ($outros as $json) {
-            if ($json) {
-                $decoded = json_decode($json, true) ?? [];
-                $arr = array_merge($arr, $decoded);
+        $pivotRecords = DB::table('megasena_bolao_user')
+            ->join('users', 'megasena_bolao_user.user_id', '=', 'users.id')
+            ->where('megasena_bolao_id', $this->bolaoAtivo->id)
+            ->select('megasena_bolao_user.*', 'users.name as user_name')
+            ->orderBy('megasena_bolao_user.id')
+            ->get();
+
+        $userIds = $pivotRecords->pluck('user_id')->toArray();
+        $qtd = count($userIds);
+        $totalBolao = $this->bolaoAtivo->total_numeros;
+        $porPessoa = $qtd > 0 ? (int) floor($totalBolao / $qtd) : 0;
+        $sobra = $qtd > 0 ? (int) ($totalBolao % $qtd) : 0;
+        $ultimoUser = end($userIds);
+
+        $outros = [];
+        $statusArray = [];
+
+        foreach ($pivotRecords as $record) {
+            $selecionadas = json_decode($record->numeros_selecionados, true) ?? [];
+            $selecionadas = array_map('intval', $selecionadas);
+            sort($selecionadas);
+
+            $limite = ($record->user_id == $ultimoUser) ? ($porPessoa + $sobra) : $porPessoa;
+            $isMe = ($record->user_id == auth()->id());
+
+            $statusArray[] = [
+                'user_id' => $record->user_id,
+                'name' => $record->user_name,
+                'is_me' => $isMe,
+                'selecionadas' => $selecionadas,
+                'limite' => $limite,
+                'finalizado' => count($selecionadas) >= $limite,
+            ];
+
+            if ($isMe) {
+                // Sincroniza minhas dezenas se foram alteradas
+                $this->minhasDezenas = $selecionadas;
+            } else {
+                $outros = array_merge($outros, $selecionadas);
             }
         }
-        $this->dezenasOutros = array_map('intval', array_unique($arr));
+
+        $this->statusUsuarios = $statusArray;
+        $this->dezenasOutros = array_map('intval', array_unique($outros));
         $this->calcularStats();
     }
 
     public function calcularStats()
     {
-        $q1 = $q2 = $q3 = $pares = $soma = 0;
+        $q1 = $q2 = $q3 = $pares = $soma = $quentes = $mornos = $frios = 0;
         $subs = array_fill(1, 15, 0);
 
         // Estatísticas pessoais (minhas dezenas)
         foreach ($this->minhasDezenas as $d) {
             $soma += $d;
             if ($d % 2 == 0) $pares++;
+
+            $t = $this->tendencias[$d] ?? 'frio';
+            if ($t === 'quente') $quentes++;
+            elseif ($t === 'morno') $mornos++;
+            else $frios++;
         }
 
         // Estatísticas consolidadas do bolão (minhas + dezenas dos outros participantes)
@@ -234,6 +312,10 @@ class SelecionarNumeros extends Page implements HasForms
             }
         }
 
+        $totalBolaoConfig = $this->bolaoAtivo->total_numeros ?? 60;
+        $totalMarcadasGeral = count($todasDezenas);
+        $percentualProgresso = ($totalBolaoConfig > 0) ? min(100, round(($totalMarcadasGeral / $totalBolaoConfig) * 100)) : 0;
+
         $this->stats = [
             'q1' => $q1,
             'q2' => $q2,
@@ -242,6 +324,12 @@ class SelecionarNumeros extends Page implements HasForms
             'pares' => $pares,
             'impares' => count($this->minhasDezenas) - $pares,
             'soma' => $soma,
+            'quentes' => $quentes,
+            'mornos' => $mornos,
+            'frios' => $frios,
+            'total_marcadas_geral' => $totalMarcadasGeral,
+            'total_bolao_config' => $totalBolaoConfig,
+            'progresso_percent' => $percentualProgresso,
         ];
     }
 

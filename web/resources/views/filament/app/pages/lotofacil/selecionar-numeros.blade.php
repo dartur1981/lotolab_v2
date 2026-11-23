@@ -1,17 +1,17 @@
 <x-filament-panels::page>
 @if($bolaoAtivo)
-    <div wire:poll.2s="refreshBoard" style="display: flex; flex-direction: column; gap: 1.5rem;">
+    <div wire:poll.2s="refreshBoard" style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
         
         @if(count($meusBoloes) > 1)
-        <div style="background-color: var(--fi-bg); border: 1px solid var(--fi-border); padding: 1rem; border-radius: 0.75rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
+        <div style="background-color: var(--fi-bg); border: 1px solid var(--fi-border); padding: 1rem; border-radius: 0.75rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); width: 100%;">
             {{ $this->form }}
         </div>
         @endif
 
-        <div style="display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap;">
+        <div style="display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; width: 100%;">
             
             {{-- COLUNA ESQUERDA: bolas --}}
-            <div style="flex-shrink: 0; display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 100%; flex: 1;">
+            <div style="flex: 1 1 0%; min-width: 0; display: flex; flex-direction: column; gap: 1rem; width: 100%;">
 
                 @php
                     $usersIds = DB::table('lotofacil_bolao_user')->where('lotofacil_bolao_id', $bolaoAtivo->id)->orderBy('id')->pluck('user_id')->toArray();
@@ -160,7 +160,7 @@
             </div>
 
             {{-- COLUNA DIREITA: legenda + widgets --}}
-            <div style="display: flex; flex-direction: column; gap: 1rem; min-width: 250px;">
+            <div style="display: flex; flex-direction: column; gap: 1rem; width: 320px; flex-shrink: 0;">
 
                 {{-- Legenda --}}
                 @php

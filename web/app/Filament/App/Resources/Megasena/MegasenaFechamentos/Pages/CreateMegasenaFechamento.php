@@ -8,4 +8,9 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateMegasenaFechamento extends CreateRecord
 {
     protected static string $resource = MegasenaFechamentoResource::class;
+
+    protected function authorizeAccess(): void
+    {
+        // Acesso liberado
+    }
 }

@@ -41,9 +41,20 @@
                             MS
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold text-white group-hover:text-emerald-400 transition">
-                                Mega-Sena
-                            </h2>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 class="text-lg font-bold text-white group-hover:text-emerald-400 transition">
+                                    Mega-Sena
+                                </h2>
+                                @if(isset($boloesMega) && $boloesMega > 0)
+                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 shadow-sm shadow-emerald-950/50">
+                                        <span class="relative flex h-2 w-2">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                                        </span>
+                                        <span>{{ $boloesMega }} {{ $boloesMega == 1 ? 'BOLÃO ABERTO' : 'BOLÕES ABERTOS' }}</span>
+                                    </span>
+                                @endif
+                            </div>
                             <p class="text-xs text-slate-400">
                                 6 dezenas por jogo · 60 números
                             </p>
@@ -64,15 +75,60 @@
                             LF
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold text-white group-hover:text-purple-400 transition">
-                                Lotofácil
-                            </h2>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 class="text-lg font-bold text-white group-hover:text-purple-400 transition">
+                                    Lotofácil
+                                </h2>
+                                @if(isset($boloesLotofacil) && $boloesLotofacil > 0)
+                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 shadow-sm shadow-emerald-950/50">
+                                        <span class="relative flex h-2 w-2">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                                        </span>
+                                        <span>{{ $boloesLotofacil }} {{ $boloesLotofacil == 1 ? 'BOLÃO ABERTO' : 'BOLÕES ABERTOS' }}</span>
+                                    </span>
+                                @endif
+                            </div>
                             <p class="text-xs text-slate-400">
                                 15 dezenas por jogo · 25 números
                             </p>
                         </div>
                     </div>
                     <svg class="w-5 h-5 text-purple-400 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                </div>
+            </a>
+
+            <!-- Quina -->
+            <a 
+                href="/pwa/quina/login" 
+                class="block p-5 rounded-2xl bg-gradient-to-br from-[#162032] to-[#1e1b4b] border border-indigo-500/40 hover:border-indigo-400 shadow-xl shadow-black/40 transition active:scale-[0.98] group"
+            >
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-black text-lg border border-indigo-500/40 group-hover:scale-105 transition">
+                            QN
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h2 class="text-lg font-bold text-white group-hover:text-indigo-400 transition">
+                                    Quina
+                                </h2>
+                                @if(isset($boloesQuina) && $boloesQuina > 0)
+                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 shadow-sm shadow-emerald-950/50">
+                                        <span class="relative flex h-2 w-2">
+                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                                        </span>
+                                        <span>{{ $boloesQuina }} {{ $boloesQuina == 1 ? 'BOLÃO ABERTO' : 'BOLÕES ABERTOS' }}</span>
+                                    </span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-slate-400">
+                                5 dezenas por jogo · 80 números
+                            </p>
+                        </div>
+                    </div>
+                    <svg class="w-5 h-5 text-indigo-400 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </div>
             </a>
         </div>

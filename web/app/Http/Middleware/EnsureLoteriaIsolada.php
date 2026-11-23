@@ -13,19 +13,19 @@ class EnsureLoteriaIsolada
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string  $loteria ('megasena' ou 'lotofacil')
+     * @param  string  $loteria ('megasena', 'lotofacil' ou 'quina')
      */
     public function handle(Request $request, Closure $next, string $loteria): Response
     {
-        $outraLoteria = ($loteria === 'megasena') ? 'lotofacil' : 'megasena';
         $current = session('pwa_current_loteria');
 
         // Se o usuário estiver tentando acessar uma loteria diferente da que está na sessão,
         // força o logout completo da loteria anterior
-        if ($current && $current === $outraLoteria) {
+        if ($current && $current !== $loteria) {
             auth()->logout();
             session()->forget('pwa_bolao_ativo_id');
             session()->forget('pwa_megasena_bolao_ativo_id');
+            session()->forget('pwa_quina_bolao_ativo_id');
             session()->forget('pwa_current_loteria');
             session()->invalidate();
             session()->regenerateToken();

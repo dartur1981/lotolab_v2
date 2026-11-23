@@ -15,6 +15,7 @@ class MegasenaFechamentosTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->recordUrl(fn ($record) => \App\Filament\App\Resources\Megasena\MegasenaFechamentos\MegasenaFechamentoResource::getUrl('view', ['record' => $record]))
             ->columns([
                 TextColumn::make('bolao.nome')
                     ->label('Nome')
@@ -43,7 +44,8 @@ class MegasenaFechamentosTable
                 ViewAction::make()
                     ->label('Ver Jogos')
                     ->color('success')
-                    ->icon('heroicon-o-list-bullet'),
+                    ->icon('heroicon-o-list-bullet')
+                    ->url(fn ($record) => \App\Filament\App\Resources\Megasena\MegasenaFechamentos\MegasenaFechamentoResource::getUrl('view', ['record' => $record])),
                 EditAction::make(),
                 DeleteAction::make(),
             ])

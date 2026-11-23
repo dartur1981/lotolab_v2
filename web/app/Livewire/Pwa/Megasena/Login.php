@@ -76,10 +76,12 @@ class Login extends Component
         }
 
         $selectedUser = $this->selectedUserId ? User::find($this->selectedUserId) : null;
+        $totalBoloesAbertos = Bolao::whereIn('status', [0, 1])->count();
 
         return view('livewire.pwa.megasena.login', [
             'participantes' => $participantes,
-            'selectedUser' => $selectedUser
+            'selectedUser' => $selectedUser,
+            'totalBoloesAbertos' => $totalBoloesAbertos
         ])->layout('components.layouts.pwa', [
             'title' => 'Entrar - Mega-Sena Bolão',
             'showHeader' => false,

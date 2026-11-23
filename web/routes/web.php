@@ -18,6 +18,14 @@ use App\Livewire\Pwa\Megasena\Apostas as MegasenaApostas;
 use App\Livewire\Pwa\Megasena\Resultado as MegasenaResultado;
 use App\Livewire\Pwa\Megasena\Boloes as MegasenaBoloes;
 
+// Livewire PWA Quina
+use App\Livewire\Pwa\Quina\Login as QuinaLogin;
+use App\Livewire\Pwa\Quina\Dashboard as QuinaDashboard;
+use App\Livewire\Pwa\Quina\Volante as QuinaVolante;
+use App\Livewire\Pwa\Quina\Apostas as QuinaApostas;
+use App\Livewire\Pwa\Quina\Resultado as QuinaResultado;
+use App\Livewire\Pwa\Quina\Boloes as QuinaBoloes;
+
 Route::get('/', function () {
     return redirect('/app');
 });
@@ -28,7 +36,11 @@ Route::get('/login', function () {
 
 // Hub Central PWA (Mobile) - Escolha de Loteria
 Route::get('/pwa', function () {
-    return view('pwa-hub');
+    $boloesMega = \App\Models\Megasena\Bolao::whereIn('status', [0, 1])->count();
+    $boloesLotofacil = \App\Models\Lotofacil\Bolao::whereIn('status', [0, 1])->count();
+    $boloesQuina = \App\Models\Quina\Bolao::whereIn('status', [0, 1])->count();
+
+    return view('pwa-hub', compact('boloesMega', 'boloesLotofacil', 'boloesQuina'));
 });
 
 // Rotas Isoladas do PWA Lotofácil
@@ -73,17 +85,50 @@ Route::prefix('pwa/megasena')->name('pwa.megasena.')->middleware('loteria.isolad
     })->name('logout');
 });
 
+// Rotas Isoladas do PWA Quina
+Route::prefix('pwa/quina')->name('pwa.quina.')->middleware('loteria.isolada:quina')->group(function () {
+    Route::get('/login', QuinaLogin::class)->name('login');
+    Route::get('/boloes', QuinaBoloes::class)->name('boloes');
+    Route::get('/', QuinaDashboard::class)->name('index');
+    Route::get('/dashboard', QuinaDashboard::class)->name('dashboard');
+    Route::get('/selecao', QuinaVolante::class)->name('selecao');
+    Route::get('/apostas', QuinaApostas::class)->name('apostas');
+    Route::get('/resultado', QuinaResultado::class)->name('resultado');
+
+    // Logout obrigatório da Quina (redireciona para o Hub PWA)
+    Route::get('/logout', function () {
+        auth()->logout();
+        session()->forget('pwa_quina_bolao_ativo_id');
+        session()->forget('pwa_current_loteria');
+        session()->invalidate();
+        session()->regenerateToken();
+        return redirect('/pwa');
+    })->name('logout');
+});
+
 // Redirecionamentos de compatibilidade para páginas do painel Filament por Tenant
 Route::get('app/{tenant}/selecionar-numeros', function ($tenant) {
-    $slug = ($tenant == 2 || $tenant === 'megasena') ? 'megasena' : 'lotofacil';
+    $slug = match((string)$tenant) {
+        '2', 'megasena' => 'megasena',
+        '3', 'quina' => 'quina',
+        default => 'lotofacil',
+    };
     return redirect("/app/{$tenant}/{$slug}/selecionar-numeros");
 });
 Route::get('app/{tenant}/configuracoes', function ($tenant) {
-    $slug = ($tenant == 2 || $tenant === 'megasena') ? 'megasena' : 'lotofacil';
+    $slug = match((string)$tenant) {
+        '2', 'megasena' => 'megasena',
+        '3', 'quina' => 'quina',
+        default => 'lotofacil',
+    };
     return redirect("/app/{$tenant}/{$slug}/configuracoes");
 });
 Route::get('app/{tenant}/importar-resultados', function ($tenant) {
-    $slug = ($tenant == 2 || $tenant === 'megasena') ? 'megasena' : 'lotofacil';
+    $slug = match((string)$tenant) {
+        '2', 'megasena' => 'megasena',
+        '3', 'quina' => 'quina',
+        default => 'lotofacil',
+    };
     return redirect("/app/{$tenant}/{$slug}/importar-resultados");
 });
 

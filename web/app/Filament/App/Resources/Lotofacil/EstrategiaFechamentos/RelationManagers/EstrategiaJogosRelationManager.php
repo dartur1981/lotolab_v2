@@ -16,6 +16,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class EstrategiaJogosRelationManager extends RelationManager
 {
@@ -149,20 +150,67 @@ class EstrategiaJogosRelationManager extends RelationManager
                 SelectFilter::make('status')
                     ->label('Status')
                     ->multiple()
+                    ->native(false)
+                    ->preload()
                     ->options([
                         '0' => 'Pendente',
                         '1' => 'Divergente',
                         '3' => 'Lançado',
                         '4' => 'Apostado',
-                    ]),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = $data['values'] ?? [];
+                        if (!empty($values)) {
+                            return $query->whereIn('status', $values);
+                        }
+                        return $query;
+                    }),
                 SelectFilter::make('acertos')
                     ->label('Acertos')
                     ->multiple()
+                    ->native(false)
+                    ->preload()
                     ->options(
                         collect(range(0, 15))->mapWithKeys(fn ($i) => [(string) $i => $i === 1 ? '1 Acerto' : "$i Acertos"])->toArray()
-                    ),
+                    )
+                    ->query(function (Builder $query, array $data): Builder {
+                        $values = $data['values'] ?? [];
+                        if (!empty($values)) {
+                            return $query->whereIn('acertos', $values);
+                        }
+                        return $query;
+                    }),
             ])
             ->headerActions([
+                \Filament\Actions\Action::make('apostar_pendentes')
+                    ->label('Apostar Pendentes')
+                    ->icon('heroicon-o-play')
+                    ->color('primary')
+                    ->disabled(fn () => static::isBotRunning())
+                    ->action(function ($livewire) {
+                        $fechamento = $livewire->getOwnerRecord();
+                        $pendentes = $fechamento->jogos()->whereIn('status', ['0', '1'])->pluck('id')->toArray();
+                        if (empty($pendentes)) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Nenhum jogo pendente para apostar.')
+                                ->info()
+                                ->send();
+                            return;
+                        }
+                        try {
+                            static::executeBackgroundBot('lancar', implode(',', $pendentes), 'estrategia');
+                            \Filament\Notifications\Notification::make()
+                                ->title(count($pendentes) . ' jogos pendentes enviados para aposta!')
+                                ->success()
+                                ->send();
+                        } catch (\Throwable $e) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Erro ao lançar')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
                 \Filament\Actions\Action::make('voltar_todos_pendente')
                     ->label('Voltar TODOS para pendente')
                     ->color('danger')

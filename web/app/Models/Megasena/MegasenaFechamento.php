@@ -18,11 +18,13 @@ class MegasenaFechamento extends Model
         'quantidade_jogos',
         'dezenas',
         'resultado',
+        'grupos',
     ];
 
     protected $casts = [
         'dezenas' => 'array',
         'resultado' => 'array',
+        'grupos' => 'array',
     ];
 
     public function bolao(): BelongsTo

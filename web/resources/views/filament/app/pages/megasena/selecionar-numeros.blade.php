@@ -1,9 +1,9 @@
 <x-filament-panels::page>
 @if($bolaoAtivo)
-    <div wire:poll.2s="carregarDezenasOutros" style="display: flex; flex-direction: column; gap: 1.5rem;">
+    <div wire:poll.2s="carregarDezenasOutros" style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
         
         @if(count($meusBoloes) > 1)
-        <div style="background-color: var(--fi-bg); border: 1px solid var(--fi-border); padding: 1rem; border-radius: 0.75rem;">
+        <div style="background-color: var(--fi-bg); border: 1px solid var(--fi-border); padding: 1rem; border-radius: 0.75rem; width: 100%;">
             {{ $this->form }}
         </div>
         @endif
@@ -66,111 +66,305 @@
             </div>
         @endif
 
-        {{-- Barra de Resumo Superior --}}
-        <div style="display: flex; align-items: center; justify-content: space-between; background-color: #0d0f12; border: 1px solid #1e2229; padding: 1rem 1.25rem; border-radius: 0.875rem; flex-wrap: wrap; gap: 0.75rem;">
-            <div>
-                <p style="font-size: 0.875rem; color: #9ca3af; margin: 0;">
-                    Bolão: <strong style="color: white;">{{ $bolaoAtivo->nome }}</strong> · Cota: <strong style="color: #34d399;">{{ $meuLimite }} dezenas</strong>
-                </p>
-                <p style="font-size: 0.75rem; color: #6b7280; margin: 0.25rem 0 0 0;">
-                    Distribuição ideal: até 2 dezenas por quadrante e no máximo 1 por sub-quadrante.
-                </p>
-            </div>
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <div style="font-size: 0.875rem; color: #d1d5db; display: flex; gap: 0.75rem;">
-                    <span>P/I: <strong>{{ $stats['pares'] }}P / {{ $stats['impares'] }}I</strong></span>
-                    <span>Soma: <strong>{{ $stats['soma'] }}</strong></span>
+        {{-- Layout Principal: Volante na Esquerda + Cards Informativos na Direita --}}
+        <div style="display: flex; gap: 1.5rem; align-items: flex-start; width: 100%; flex-wrap: wrap;">
+            
+            {{-- COLUNA DA ESQUERDA: VOLANTE E QUADRANTES --}}
+            <div style="flex: 1 1 680px; min-width: 0; display: flex; flex-direction: column; gap: 1.5rem;">
+                
+                {{-- Barra de Resumo Superior --}}
+                <div style="display: flex; align-items: center; justify-content: space-between; background-color: #0d0f12; border: 1px solid #1e2229; padding: 1rem 1.25rem; border-radius: 0.875rem; flex-wrap: wrap; gap: 0.75rem;">
+                    <div>
+                        <p style="font-size: 0.875rem; color: #9ca3af; margin: 0;">
+                            Bolão: <strong style="color: white;">{{ $bolaoAtivo->nome }}</strong> · Cota: <strong style="color: #34d399;">{{ $meuLimite }} dezenas</strong>
+                        </p>
+                        <p style="font-size: 0.75rem; color: #6b7280; margin: 0.25rem 0 0 0;">
+                            Distribuição ideal: até 2 dezenas por quadrante e no máximo 1 por sub-quadrante.
+                        </p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <div style="font-size: 0.875rem; color: #d1d5db; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+                            <span style="color: #f87171;">🔥 <strong>{{ $stats['quentes'] ?? 0 }}</strong> Quente</span>
+                            <span style="color: #fbbf24;">⚡ <strong>{{ $stats['mornos'] ?? 0 }}</strong> Morna</span>
+                            <span style="color: #60a5fa;">❄️ <strong>{{ $stats['frios'] ?? 0 }}</strong> Fria</span>
+                            <span style="color: #4b5563;">|</span>
+                            <span>P/I: <strong>{{ $stats['pares'] }}P / {{ $stats['impares'] }}I</strong></span>
+                            <span>Soma: <strong>{{ $stats['soma'] }}</strong></span>
+                        </div>
+                        <span style="font-size: 1.125rem; font-weight: 800; color: {{ count($selecionados) >= $meuLimite ? '#10b981' : '#34d399' }}; background: #161b22; padding: 0.25rem 0.75rem; border-radius: 0.5rem; border: 1px solid #21262d;">
+                            {{ count($selecionados) }} / {{ $meuLimite }}
+                        </span>
+                    </div>
                 </div>
-                <span style="font-size: 1.125rem; font-weight: 800; color: {{ count($selecionados) >= $meuLimite ? '#10b981' : '#34d399' }}; background: #161b22; padding: 0.25rem 0.75rem; border-radius: 0.5rem; border: 1px solid #21262d;">
-                    {{ count($selecionados) }} / {{ $meuLimite }}
-                </span>
-            </div>
-        </div>
 
-        {{-- CONTAINER DOS 3 QUADRANTES CONFORME A IMAGEM --}}
-        <div style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
-            @foreach($quadrantesDef as $quadrante)
-                <div style="
-                    border: 1px solid #232730;
-                    background: #0b0d11;
-                    border-radius: 1rem;
-                    padding: 1.5rem 1rem 1.25rem 1rem;
-                    position: relative;
-                ">
-                    {{-- Título do Quadrante embutido na borda superior --}}
-                    <div style="
-                        position: absolute;
-                        top: -0.65rem;
-                        left: 1.5rem;
-                        background: #0b0d11;
-                        padding: 0 0.6rem;
-                        font-family: ui-monospace, monospace;
-                        font-size: 0.85rem;
-                        color: #94a3b8;
-                        letter-spacing: 0.05em;
-                        display: flex;
-                        align-items: center;
-                        gap: 0.6rem;
-                    ">
-                        <span style="color: #cbd5e1; font-weight: 600;">{{ $quadrante['label'] }}</span>
-                        <span style="color: {{ $quadrante['count'] > $quadrante['max'] ? '#f87171' : ($quadrante['count'] == $quadrante['max'] ? '#34d399' : '#64748b') }}; font-weight: 700;">
-                            {{ $quadrante['count'] }}/{{ $quadrante['max'] }}
+                {{-- Legenda de Cores por Temperatura das Bolas --}}
+                <div style="display: flex; align-items: center; justify-content: flex-start; gap: 1.25rem; background-color: #0b0d11; border: 1px solid #1e2229; padding: 0.65rem 1.25rem; border-radius: 0.75rem; flex-wrap: wrap;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Legenda:</span>
+                    <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; color: #cbd5e1;">
+                        <span style="width: 14px; height: 14px; border-radius: 9999px; background: radial-gradient(circle at 35% 35%, #fca5a5, #dc2626 55%, #7f1d1d); display: inline-block;"></span>
+                        <span>Quente</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; color: #cbd5e1;">
+                        <span style="width: 14px; height: 14px; border-radius: 9999px; background: radial-gradient(circle at 35% 35%, #fde68a, #d97706 55%, #78350f); display: inline-block;"></span>
+                        <span>Morna</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; color: #cbd5e1;">
+                        <span style="width: 14px; height: 14px; border-radius: 9999px; background: radial-gradient(circle at 35% 35%, #93c5fd, #1d4ed8 55%, #1e1b4b); display: inline-block;"></span>
+                        <span>Fria</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; color: #cbd5e1;">
+                        <span style="width: 14px; height: 14px; border-radius: 9999px; background: radial-gradient(circle at 35% 35%, #86efac, #16a34a 55%, #14532d); outline: 2px solid #22c55e; display: inline-block;"></span>
+                        <span style="color: #34d399; font-weight: 700;">Sua Marcada</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.8rem; color: #cbd5e1;">
+                        <span style="width: 14px; height: 14px; border-radius: 9999px; background: radial-gradient(circle at 35% 30%, #f1f5f9 0%, #cbd5e1 32%, #94a3b8 70%, #64748b 100%); display: inline-block;"></span>
+                        <span>Outro</span>
+                    </div>
+                </div>
+
+                {{-- CONTAINER DOS 3 QUADRANTES CONFORME O VOLANTE --}}
+                <div style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
+                    @foreach($quadrantesDef as $quadrante)
+                        <div style="
+                            border: 1px solid #232730;
+                            background: #0b0d11;
+                            border-radius: 1rem;
+                            padding: 1.5rem 1rem 1.25rem 1rem;
+                            position: relative;
+                        ">
+                            {{-- Título do Quadrante embutido na borda superior --}}
+                            <div style="
+                                position: absolute;
+                                top: -0.65rem;
+                                left: 1.5rem;
+                                background: #0b0d11;
+                                padding: 0 0.6rem;
+                                font-family: ui-monospace, monospace;
+                                font-size: 0.85rem;
+                                color: #94a3b8;
+                                letter-spacing: 0.05em;
+                                display: flex;
+                                align-items: center;
+                                gap: 0.6rem;
+                            ">
+                                <span style="color: #cbd5e1; font-weight: 600;">{{ $quadrante['label'] }}</span>
+                                <span style="color: {{ $quadrante['count'] > $quadrante['max'] ? '#f87171' : ($quadrante['count'] == $quadrante['max'] ? '#34d399' : '#64748b') }}; font-weight: 700;">
+                                    {{ $quadrante['count'] }}/{{ $quadrante['max'] }}
+                                </span>
+                            </div>
+
+                            {{-- 5 Sub-Quadrantes (Blocos 2x2: 2 dezenas na linha de cima, 2 na linha de baixo) --}}
+                            <div style="
+                                display: grid;
+                                grid-template-columns: repeat(5, minmax(0, 1fr));
+                                gap: 0.85rem;
+                                width: 100%;
+                            ">
+                                @for($col = 1; $col <= 5; $col++)
+                                    @php
+                                        $subGlobalIdx = ($quadrante['id'] - 1) * 5 + $col;
+                                        $qIdx = $quadrante['id'] - 1; // 0, 1, 2
+                                        $blocoCol = $col - 1; // 0, 1, 2, 3, 4
+                                        $linhaBase = $qIdx * 20;
+                                        $colStart = $blocoCol * 2 + 1;
+
+                                        $n1 = $linhaBase + $colStart;
+                                        $n2 = $linhaBase + $colStart + 1;
+                                        $n3 = $linhaBase + $colStart + 10;
+                                        $n4 = $linhaBase + $colStart + 11;
+
+                                        $subCount = $stats['subs'][$subGlobalIdx] ?? 0;
+                                        $maxSub = (int) ($bolaoAtivo->max_sub_quadrante ?? 1);
+                                        $isSubFull = $maxSub > 0 && $subCount >= $maxSub;
+                                        $isQuadFull = $quadrante['max'] > 0 && $quadrante['count'] >= $quadrante['max'];
+                                        $isBlocked = ($isSubFull || $isQuadFull);
+                                    @endphp
+                                    <div style="
+                                        border: 1px solid #1a1e27;
+                                        background: #11141a;
+                                        border-radius: 0.85rem;
+                                        padding: 0.85rem 0.6rem;
+                                        display: flex;
+                                        flex-direction: column;
+                                        align-items: center;
+                                        justify-content: center;
+                                        box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.03);
+                                        position: relative;
+                                    ">
+                                        {{-- Linha Superior do Bloco 2x2 --}}
+                                        <div style="display: flex; gap: 0.6rem; margin-bottom: 0.6rem;">
+                                            @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n1, 'isBlocked' => $isBlocked])
+                                            @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n2, 'isBlocked' => $isBlocked])
+                                        </div>
+                                        {{-- Linha Inferior do Bloco 2x2 --}}
+                                        <div style="display: flex; gap: 0.6rem;">
+                                            @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n3, 'isBlocked' => $isBlocked])
+                                            @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n4, 'isBlocked' => $isBlocked])
+                                        </div>
+                                    </div>
+                                @endfor
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+            </div>
+
+            {{-- COLUNA DA DIREITA: CARDS INFORMATIVOS --}}
+            <div style="flex: 0 0 360px; max-width: 100%; min-width: 320px; display: flex; flex-direction: column; gap: 1.25rem;">
+                
+                {{-- CARD 1: PROGRESSO GLOBAL DO BOLÃO --}}
+                <div style="background-color: #0d0f12; border: 1px solid #1e2229; border-radius: 0.875rem; padding: 1.25rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <span style="font-size: 0.8rem; font-weight: 700; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>📊</span> Progresso do Bolão
+                        </span>
+                        <span style="font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 0.375rem; background: {{ $isLocked ? '#7f1d1d' : '#064e3b' }}; color: {{ $isLocked ? '#fca5a5' : '#6ee7b7' }};">
+                            {{ $isLocked ? 'Encerrado' : 'Em Andamento' }}
                         </span>
                     </div>
 
-                    {{-- 5 Sub-Quadrantes (Blocos 2x2: 2 dezenas na linha de cima, 2 na linha de baixo) --}}
-                    <div style="
-                        display: grid;
-                        grid-template-columns: repeat(5, minmax(0, 1fr));
-                        gap: 0.85rem;
-                        width: 100%;
-                    ">
-                        @for($col = 1; $col <= 5; $col++)
-                            @php
-                                $subGlobalIdx = ($quadrante['id'] - 1) * 5 + $col;
-                                $qIdx = $quadrante['id'] - 1; // 0, 1, 2
-                                $blocoCol = $col - 1; // 0, 1, 2, 3, 4
-                                $linhaBase = $qIdx * 20;
-                                $colStart = $blocoCol * 2 + 1;
+                    {{-- Barra de progresso visual --}}
+                    @php
+                        $totalMarcadasPool = $stats['total_marcadas_geral'] ?? (count($minhasDezenas) + count($dezenasOutros));
+                        $totalMeta = $totalBolao;
+                        $pct = ($totalMeta > 0) ? min(100, round(($totalMarcadasPool / $totalMeta) * 100)) : 0;
+                    @endphp
+                    <div style="margin-bottom: 1.25rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #9ca3af; margin-bottom: 0.4rem;">
+                            <span>Pool de Dezenas</span>
+                            <span style="font-weight: 700; color: #34d399;">{{ $totalMarcadasPool }} / {{ $totalMeta }} ({{ $pct }}%)</span>
+                        </div>
+                        <div style="width: 100%; height: 8px; background: #161b22; border-radius: 9999px; overflow: hidden; border: 1px solid #21262d;">
+                            <div style="width: {{ $pct }}%; height: 100%; background: linear-gradient(90deg, #10b981, #059669); border-radius: 9999px; transition: width 0.3s ease;"></div>
+                        </div>
+                    </div>
 
-                                $n1 = $linhaBase + $colStart;
-                                $n2 = $linhaBase + $colStart + 1;
-                                $n3 = $linhaBase + $colStart + 10;
-                                $n4 = $linhaBase + $colStart + 11;
-
-                                $subCount = $stats['subs'][$subGlobalIdx] ?? 0;
-                                $maxSub = (int) ($bolaoAtivo->max_sub_quadrante ?? 1);
-                                $isSubFull = $maxSub > 0 && $subCount >= $maxSub;
-                                $isQuadFull = $quadrante['max'] > 0 && $quadrante['count'] >= $quadrante['max'];
-                                $isBlocked = ($isSubFull || $isQuadFull);
-                            @endphp
-                            <div style="
-                                border: 1px solid #1a1e27;
-                                background: #11141a;
-                                border-radius: 0.85rem;
-                                padding: 0.85rem 0.6rem;
-                                display: flex;
-                                flex-direction: column;
-                                align-items: center;
-                                justify-content: center;
-                                box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.03);
-                                position: relative;
-                            ">
-                                {{-- Linha Superior do Bloco 2x2 --}}
-                                <div style="display: flex; gap: 0.6rem; margin-bottom: 0.6rem;">
-                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n1, 'isBlocked' => $isBlocked])
-                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n2, 'isBlocked' => $isBlocked])
-                                </div>
-                                {{-- Linha Inferior do Bloco 2x2 --}}
-                                <div style="display: flex; gap: 0.6rem;">
-                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n3, 'isBlocked' => $isBlocked])
-                                    @include('filament.app.pages.megasena.partials.bola-volante', ['numero' => $n4, 'isBlocked' => $isBlocked])
-                                </div>
-                            </div>
-                        @endfor
+                    {{-- Limites por Quadrante --}}
+                    <div style="border-top: 1px solid #1e2229; padding-top: 1rem; display: flex; flex-direction: column; gap: 0.65rem;">
+                        <span style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Limites dos Quadrantes</span>
+                        
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+                            <span style="color: #94a3b8;">Q1 (01 – 20)</span>
+                            <span style="font-weight: 700; color: {{ $stats['q1'] >= $maxQ1 ? '#34d399' : '#f1f5f9' }};">
+                                {{ $stats['q1'] }} / {{ $maxQ1 }}
+                            </span>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+                            <span style="color: #94a3b8;">Q2 (21 – 40)</span>
+                            <span style="font-weight: 700; color: {{ $stats['q2'] >= $maxQ2 ? '#34d399' : '#f1f5f9' }};">
+                                {{ $stats['q2'] }} / {{ $maxQ2 }}
+                            </span>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+                            <span style="color: #94a3b8;">Q3 (41 – 60)</span>
+                            <span style="font-weight: 700; color: {{ $stats['q3'] >= $maxQ3 ? '#34d399' : '#f1f5f9' }};">
+                                {{ $stats['q3'] }} / {{ $maxQ3 }}
+                            </span>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+                            <span style="color: #94a3b8;">Sub-Quadrantes (2x2)</span>
+                            <span style="font-weight: 700; color: #a78bfa;">
+                                Máx. {{ $bolaoAtivo->max_sub_quadrante ?? 1 }} cada
+                            </span>
+                        </div>
                     </div>
                 </div>
-            @endforeach
+
+                {{-- CARD 2: USUÁRIOS E SUAS SELEÇÕES --}}
+                <div style="background-color: #0d0f12; border: 1px solid #1e2229; border-radius: 0.875rem; padding: 1.25rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <span style="font-size: 0.8rem; font-weight: 700; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>👥</span> Usuários & Seleções
+                        </span>
+                        <span style="font-size: 0.75rem; color: #64748b;">
+                            {{ count($statusUsuarios) }} participantes
+                        </span>
+                    </div>
+
+                    @if(empty($statusUsuarios))
+                        <div style="text-align: center; padding: 1rem; color: #6b7280; font-size: 0.8rem;">
+                            Nenhum participante vinculado ainda.
+                        </div>
+                    @else
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            @foreach($statusUsuarios as $u)
+                                <div style="
+                                    background: {{ $u['is_me'] ? 'rgba(16, 185, 129, 0.06)' : '#11141a' }};
+                                    border: 1px solid {{ $u['is_me'] ? 'rgba(16, 185, 129, 0.3)' : '#1e2433' }};
+                                    border-radius: 0.65rem;
+                                    padding: 0.75rem;
+                                    display: flex;
+                                    flex-direction: column;
+                                    gap: 0.5rem;
+                                ">
+                                    {{-- Cabeçalho do Usuário --}}
+                                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                                            <span style="font-size: 0.82rem; font-weight: 700; color: {{ $u['is_me'] ? '#34d399' : '#f1f5f9' }};">
+                                                {{ $u['name'] }}
+                                            </span>
+                                            @if($u['is_me'])
+                                                <span style="font-size: 0.65rem; font-weight: 800; background: #064e3b; color: #6ee7b7; padding: 0.1rem 0.4rem; border-radius: 0.25rem;">
+                                                    VOCÊ
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <span style="font-size: 0.72rem; font-weight: 700; color: {{ $u['finalizado'] ? '#34d399' : '#f59e0b' }};">
+                                            {{ count($u['selecionadas']) }} / {{ $u['limite'] }}
+                                            {{ $u['finalizado'] ? '✓' : '' }}
+                                        </span>
+                                    </div>
+
+                                    {{-- Bolinhas das dezenas selecionadas por esse usuário --}}
+                                    @if(empty($u['selecionadas']))
+                                        <div style="font-size: 0.72rem; color: #64748b; font-style: italic;">
+                                            Aguardando seleção...
+                                        </div>
+                                    @else
+                                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
+                                            @foreach(collect($u['selecionadas'])->sort()->values() as $n)
+                                                @php
+                                                    $tempRaw = strtolower($tendencias[$n] ?? 'frio');
+                                                    $tGrad = match($tempRaw) {
+                                                        'quente' => 'radial-gradient(circle at 35% 35%, #fca5a5, #dc2626 55%, #7f1d1d)',
+                                                        'morna', 'morno' => 'radial-gradient(circle at 35% 35%, #fde68a, #d97706 55%, #78350f)',
+                                                        default => 'radial-gradient(circle at 35% 35%, #93c5fd, #1d4ed8 55%, #1e1b4b)',
+                                                    };
+                                                    if ($u['is_me']) {
+                                                        $tGrad = 'radial-gradient(circle at 35% 35%, #86efac, #16a34a 55%, #14532d)';
+                                                    }
+                                                @endphp
+                                                <span 
+                                                    style="
+                                                        width: 25px;
+                                                        height: 25px;
+                                                        border-radius: 9999px;
+                                                        background: {{ $tGrad }};
+                                                        display: inline-flex;
+                                                        align-items: center;
+                                                        justify-content: center;
+                                                        font-weight: 800;
+                                                        font-size: 0.7rem;
+                                                        color: #ffffff;
+                                                        box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+                                                        text-shadow: 0 1px 1px rgba(0,0,0,0.7);
+                                                    "
+                                                    title="Dezena {{ str_pad($n, 2, '0', STR_PAD_LEFT) }}"
+                                                >
+                                                    {{ str_pad($n, 2, '0', STR_PAD_LEFT) }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+            </div>
+
         </div>
 
     </div>

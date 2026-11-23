@@ -76,8 +76,9 @@ class Login extends Component
         }
 
         $selectedUser = $this->selectedUserId ? \App\Models\User::find($this->selectedUserId) : null;
+        $totalBoloesAbertos = \App\Models\Lotofacil\Bolao::whereIn('status', [0, 1])->count();
 
-        return view('livewire.pwa.lotofacil.login', compact('participantes', 'selectedUser'))
+        return view('livewire.pwa.lotofacil.login', compact('participantes', 'selectedUser', 'totalBoloesAbertos'))
             ->layout('components.layouts.pwa', [
                 'title' => 'Fazer Login - LotoLab Lotofácil',
                 'showHeader' => false

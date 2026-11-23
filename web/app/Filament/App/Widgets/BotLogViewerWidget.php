@@ -10,7 +10,7 @@ class BotLogViewerWidget extends Widget
 {
     public static function canView(): bool
     {
-        return Filament::getTenant()?->slug === 'lotofacil';
+        return true;
     }
 
     protected string $view = 'livewire.bot-log-viewer';
@@ -21,7 +21,13 @@ class BotLogViewerWidget extends Widget
 
     public function updateLogs()
     {
-        $logFile = base_path('../logs/bot_lotofacil.log');
+        $tenant = Filament::getTenant();
+        $fileName = match ($tenant?->slug) {
+            'megasena' => 'bot_megasena.log',
+            'quina' => 'bot_quina.log',
+            default => 'bot_lotofacil.log',
+        };
+        $logFile = base_path('../logs/' . $fileName);
         
         if (File::exists($logFile)) {
             $content = File::get($logFile);

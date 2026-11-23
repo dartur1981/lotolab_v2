@@ -15,6 +15,7 @@ class MegasenaFechamentoJogo extends Model
     protected $fillable = [
         'fechamento_id',
         'dezenas',
+        'grupos',
         'status',
         'acertos',
     ];

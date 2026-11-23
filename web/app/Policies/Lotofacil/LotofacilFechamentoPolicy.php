@@ -14,62 +14,61 @@ class LotofacilFechamentoPolicy
     
     public function viewAny(AuthUser $authUser): bool
     {
-        return $authUser->can('ViewAny:LotofacilFechamento');
+        return true;
     }
 
     public function view(AuthUser $authUser, LotofacilFechamento $lotofacilFechamento): bool
     {
-        return $authUser->can('View:LotofacilFechamento');
+        return true;
     }
 
     public function create(AuthUser $authUser): bool
     {
-        return $authUser->can('Create:LotofacilFechamento');
+        return true;
     }
 
     public function update(AuthUser $authUser, LotofacilFechamento $lotofacilFechamento): bool
     {
-        return $authUser->can('Update:LotofacilFechamento');
+        return true;
     }
 
     public function delete(AuthUser $authUser, LotofacilFechamento $lotofacilFechamento): bool
     {
-        return $authUser->can('Delete:LotofacilFechamento');
+        return true;
     }
 
     public function deleteAny(AuthUser $authUser): bool
     {
-        return $authUser->can('DeleteAny:LotofacilFechamento');
+        return true;
     }
 
     public function restore(AuthUser $authUser, LotofacilFechamento $lotofacilFechamento): bool
     {
-        return $authUser->can('Restore:LotofacilFechamento');
+        return true;
     }
 
     public function forceDelete(AuthUser $authUser, LotofacilFechamento $lotofacilFechamento): bool
     {
-        return $authUser->can('ForceDelete:LotofacilFechamento');
+        return true;
     }
 
     public function forceDeleteAny(AuthUser $authUser): bool
     {
-        return $authUser->can('ForceDeleteAny:LotofacilFechamento');
+        return true;
     }
 
     public function restoreAny(AuthUser $authUser): bool
     {
-        return $authUser->can('RestoreAny:LotofacilFechamento');
+        return true;
     }
 
     public function replicate(AuthUser $authUser, LotofacilFechamento $lotofacilFechamento): bool
     {
-        return $authUser->can('Replicate:LotofacilFechamento');
+        return true;
     }
 
     public function reorder(AuthUser $authUser): bool
     {
-        return $authUser->can('Reorder:LotofacilFechamento');
+        return true;
     }
-
 }

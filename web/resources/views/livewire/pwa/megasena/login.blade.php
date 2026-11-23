@@ -5,10 +5,21 @@
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white font-black text-xl shadow-lg shadow-emerald-900/50 mb-2">
             MS
         </div>
-        <h1 class="text-3xl font-extrabold text-emerald-400 tracking-tight">
-            Mega-Sena Bolão
-        </h1>
-        <p class="text-xs text-slate-400 mt-1 font-normal">
+        <div class="flex items-center justify-center gap-2 flex-wrap mb-1">
+            <h1 class="text-3xl font-extrabold text-emerald-400 tracking-tight">
+                Mega-Sena Bolão
+            </h1>
+            @if(isset($totalBoloesAbertos) && $totalBoloesAbertos > 0)
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-300 border border-emerald-500/50 shadow-sm shadow-emerald-950/50">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+                    </span>
+                    <span>{{ $totalBoloesAbertos }} {{ $totalBoloesAbertos == 1 ? 'BOLÃO ABERTO' : 'BOLÕES ABERTOS' }}</span>
+                </span>
+            @endif
+        </div>
+        <p class="text-xs text-slate-400 font-normal">
             LotoLab — Acesso do Participante
         </p>
     </div>
@@ -94,6 +105,11 @@
             </div>
         @endif
 
+        <div class="mt-4 pt-3 border-t border-slate-800/80 text-center">
+            <a href="/pwa" class="text-xs text-slate-500 hover:text-slate-400">
+                &larr; Voltar para seleção de loterias
+            </a>
+        </div>
     </div>
 
 </div>

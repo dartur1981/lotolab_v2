@@ -32,6 +32,26 @@ class MegasenaFechamentoResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'id';
 
+    public static function canCreate(): bool
+    {
+        return true;
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return true;
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return true;
+    }
+
+    public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return true;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return MegasenaFechamentoForm::configure($schema);

@@ -6,13 +6,15 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
+use App\Filament\App\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Support\Enums\Width;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use App\Models\Loteria;
+use App\Http\Middleware\TrackLastTenant;
 use App\Livewire\CiclosWidget;
 use App\Livewire\MegasenaCiclosWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -30,7 +32,12 @@ class AppPanelProvider extends PanelProvider
             ->id('app')
             ->path('app')
             ->login()
+            ->topNavigation()
+            ->maxContentWidth(Width::Full)
             ->tenant(Loteria::class)
+            ->tenantMiddleware([
+                TrackLastTenant::class,
+            ], isPersistent: true)
             ->databaseNotifications()
             ->databaseNotificationsPolling('3s')
             ->discoverResources(in: app_path('Filament/App/Resources'), for: 'App\Filament\App\Resources')

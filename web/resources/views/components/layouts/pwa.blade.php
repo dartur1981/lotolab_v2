@@ -44,22 +44,34 @@
 <body class="h-full text-slate-100 bg-[#0B1325] flex flex-col justify-between select-none antialiased">
     
     @php
+        $isQuina = request()->is('pwa/quina*') || (($loteria ?? '') === 'quina');
         $isMega = request()->is('pwa/megasena*') || (($loteria ?? '') === 'megasena');
-        $basePwa = $isMega ? '/pwa/megasena' : '/pwa/lotofacil';
-        $corAtiva = $isMega ? 'text-emerald-400 font-bold' : 'text-purple-400 font-bold';
+        
+        if ($isQuina) {
+            $basePwa = '/pwa/quina';
+            $corAtiva = 'text-indigo-400 font-bold';
+        } elseif ($isMega) {
+            $basePwa = '/pwa/megasena';
+            $corAtiva = 'text-emerald-400 font-bold';
+        } else {
+            $basePwa = '/pwa/lotofacil';
+            $corAtiva = 'text-purple-400 font-bold';
+        }
     @endphp
 
     @if($showHeader ?? false)
     <header class="sticky top-0 z-30 bg-[#162032]/80 backdrop-blur-md border-b border-slate-800/80 px-4 py-2 text-center shadow-lg">
         @auth
-            @if($isMega)
+            @if($isQuina)
+                @livewire('pwa.quina.bolao-selector')
+            @elseif($isMega)
                 @livewire('pwa.megasena.bolao-selector')
             @else
                 @livewire('pwa.lotofacil.bolao-selector')
             @endif
         @else
-            <h1 class="text-xl font-black {{ $isMega ? 'text-emerald-400' : 'text-brand-green' }}">
-                {{ $isMega ? 'Bolão Mega-Sena' : 'Bolão Lotofácil' }}
+            <h1 class="text-xl font-black {{ $isQuina ? 'text-indigo-400' : ($isMega ? 'text-emerald-400' : 'text-brand-green') }}">
+                {{ $isQuina ? 'Bolão Quina' : ($isMega ? 'Bolão Mega-Sena' : 'Bolão Lotofácil') }}
             </h1>
         @endauth
     </header>

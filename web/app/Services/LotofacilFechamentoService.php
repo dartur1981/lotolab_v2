@@ -56,6 +56,22 @@ class LotofacilFechamentoService
                 throw new \Exception($errorMsg);
             }
 
+            // Atualiza os valores de rateio no cadastro do bolão
+            $precoAposta = (float) (\App\Models\ConfiguracaoApp::where('chave', 'lotofacil_valor_aposta')->value('valor') ?? 3.00);
+            $totalJogosGerados = $fechamento->jogos()->count() ?: $quantidadeJogos;
+            $valorTotal = $totalJogosGerados * $precoAposta;
+
+            $totalParticipantes = DB::table('lotofacil_bolao_user')
+                ->where('lotofacil_bolao_id', $bolaoId)
+                ->count();
+
+            $valorCota = $totalParticipantes > 0 ? round($valorTotal / $totalParticipantes, 2) : $valorTotal;
+
+            $bolao->update([
+                'valor_total' => $valorTotal,
+                'valor_cota' => $valorCota,
+            ]);
+
             return $fechamento->refresh();
         } catch (\Exception $e) {
             $fechamento->delete();
