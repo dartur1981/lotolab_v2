@@ -46,8 +46,12 @@ class JogosRelationManager extends RelationManager
 
     protected static function getPhpBinary(): string
     {
-        if (defined('PHP_BINARY') && !empty(PHP_BINARY) && @is_executable(PHP_BINARY)) {
-            return PHP_BINARY;
+        if (class_exists(\Symfony\Component\Process\PhpExecutableFinder::class)) {
+            $finder = new \Symfony\Component\Process\PhpExecutableFinder();
+            $binary = $finder->find(false);
+            if ($binary) {
+                return $binary;
+            }
         }
 
         if (PHP_OS_FAMILY === 'Windows') {
