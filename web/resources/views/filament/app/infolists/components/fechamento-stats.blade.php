@@ -228,21 +228,65 @@
         </div>
     </div>
 
-    <div class="stats-title">
-        {{ count($dezenas) }} Dezenas Selecionadas
-    </div>
+    <div
+        x-data="{
+            open: (() => {
+                try {
+                    const saved = localStorage.getItem('lotolab_dezenas_selecionadas_open');
+                    return saved === null ? true : saved === '1';
+                } catch (e) {
+                    return true;
+                }
+            })(),
+            toggle() {
+                this.open = !this.open;
+                try {
+                    localStorage.setItem('lotolab_dezenas_selecionadas_open', this.open ? '1' : '0');
+                } catch (e) {}
+            }
+        }"
+    >
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+            <button
+                type="button"
+                x-on:click="toggle()"
+                class="stats-title"
+                style="background: transparent; border: none; padding: 0; cursor: pointer; text-align: left;"
+            >
+                {{ count($dezenas) }} Dezenas Selecionadas
+            </button>
 
-    <div class="stats-balls-container">
-        @foreach($dezenas as $dezena)
-            @php
-                $isAcerto = $hasResultado ? in_array($dezena, $resultado) : false;
-                $bgColor = $isAcerto ? '#22c55e' : '#4b5563';
-                $textColor = $isAcerto ? '#ffffff' : '#d1d5db';
-            @endphp
-            <div class="stats-ball" style="background-color: {{ $bgColor }}; color: {{ $textColor }};">
-                {{ str_pad($dezena, 2, '0', STR_PAD_LEFT) }}
+            <button
+                type="button"
+                x-on:click="toggle()"
+                style="display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #9ca3af; background: transparent; border: none; padding: 0.15rem 0.25rem; cursor: pointer;"
+            >
+                <span x-text="open ? 'Recolher' : 'Expandir'">Recolher</span>
+                <svg
+                    x-bind:style="open ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
+                    style="width: 1rem; height: 1rem; transition: transform 150ms ease;"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                >
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+
+        <div x-show="open" x-collapse>
+            <div class="stats-balls-container" style="margin-top: 0.75rem;">
+                @foreach($dezenas as $dezena)
+                    @php
+                        $isAcerto = $hasResultado ? in_array($dezena, $resultado) : false;
+                        $bgColor = $isAcerto ? '#22c55e' : '#4b5563';
+                        $textColor = $isAcerto ? '#ffffff' : '#d1d5db';
+                    @endphp
+                    <div class="stats-ball" style="background-color: {{ $bgColor }}; color: {{ $textColor }};">
+                        {{ str_pad($dezena, 2, '0', STR_PAD_LEFT) }}
+                    </div>
+                @endforeach
             </div>
-        @endforeach
+        </div>
     </div>
 
     @php
@@ -265,29 +309,72 @@
     @endphp
 
     @if(!empty($gruposData) && is_array($gruposData))
-        <div style="border-top: 1px solid #1f2937; padding-top: 1rem; margin-top: 0.5rem; text-align: center;">
-            <div style="color: #94a3b8; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.65rem; text-align: center;">
-                {{ $tituloGrupos }}
+        <div
+            x-data="{
+                open: (() => {
+                    try {
+                        const saved = localStorage.getItem('lotolab_matriz_grupos_open');
+                        return saved === null ? true : saved === '1';
+                    } catch (e) {
+                        return true;
+                    }
+                })(),
+                toggle() {
+                    this.open = !this.open;
+                    try {
+                        localStorage.setItem('lotolab_matriz_grupos_open', this.open ? '1' : '0');
+                    } catch (e) {}
+                }
+            }"
+            style="border-top: 1px solid #1f2937; padding-top: 1rem; margin-top: 0.5rem;"
+        >
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                <button
+                    type="button"
+                    x-on:click="toggle()"
+                    style="color: #94a3b8; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: transparent; border: none; padding: 0; cursor: pointer; text-align: left;"
+                >
+                    {{ $tituloGrupos }}
+                </button>
+
+                <button
+                    type="button"
+                    x-on:click="toggle()"
+                    style="display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #9ca3af; background: transparent; border: none; padding: 0.15rem 0.25rem; cursor: pointer;"
+                >
+                    <span x-text="open ? 'Recolher' : 'Expandir'">Recolher</span>
+                    <svg
+                        x-bind:style="open ? 'transform: rotate(180deg);' : 'transform: rotate(0deg);'"
+                        style="width: 1rem; height: 1rem; transition: transform 150ms ease;"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                    >
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
             </div>
-            <div style="display: flex; flex-wrap: wrap; gap: 0.65rem; justify-content: center; align-items: center;">
-                @foreach($gruposData as $nomeGrupo => $dezenasGrupo)
-                    @if(is_array($dezenasGrupo))
-                        <div style="background: #1f2937; border: 1px solid #374151; border-radius: 0.5rem; padding: 0.35rem 0.65rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                            <span style="font-weight: 800; font-size: 0.75rem; color: #38bdf8; background: #0c4a6e; padding: 0.15rem 0.4rem; border-radius: 0.25rem; text-align: center;">
-                                {{ $nomeGrupo }}
-                            </span>
-                            <div style="display: flex; gap: 0.25rem; flex-wrap: wrap; justify-content: center; align-items: center;">
-                                @foreach($dezenasGrupo as $dz)
-                                    @if(is_scalar($dz))
-                                        <span style="font-weight: 700; font-size: 0.8rem; color: #f1f5f9; background: #111827; padding: 0.1rem 0.35rem; border-radius: 0.25rem; border: 1px solid #374151; min-width: 1.6rem; text-align: center;">
-                                            {{ str_pad((string)$dz, 2, '0', STR_PAD_LEFT) }}
-                                        </span>
-                                    @endif
-                                @endforeach
+
+            <div x-show="open" x-collapse>
+                <div style="margin-top: 0.65rem; display: flex; flex-wrap: wrap; gap: 0.65rem; justify-content: center; align-items: center;">
+                    @foreach($gruposData as $nomeGrupo => $dezenasGrupo)
+                        @if(is_array($dezenasGrupo))
+                            <div style="background: #1f2937; border: 1px solid #374151; border-radius: 0.5rem; padding: 0.35rem 0.65rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                <span style="font-weight: 800; font-size: 0.75rem; color: #38bdf8; background: #0c4a6e; padding: 0.15rem 0.4rem; border-radius: 0.25rem; text-align: center;">
+                                    {{ $nomeGrupo }}
+                                </span>
+                                <div style="display: flex; gap: 0.25rem; flex-wrap: wrap; justify-content: center; align-items: center;">
+                                    @foreach($dezenasGrupo as $dz)
+                                        @if(is_scalar($dz))
+                                            <span style="font-weight: 700; font-size: 0.8rem; color: #f1f5f9; background: #111827; padding: 0.1rem 0.35rem; border-radius: 0.25rem; border: 1px solid #374151; min-width: 1.6rem; text-align: center;">
+                                                {{ str_pad((string)$dz, 2, '0', STR_PAD_LEFT) }}
+                                            </span>
+                                        @endif
+                                    @endforeach
+                                </div>
                             </div>
-                        </div>
-                    @endif
-                @endforeach
+                        @endif
+                    @endforeach
+                </div>
             </div>
         </div>
     @endif

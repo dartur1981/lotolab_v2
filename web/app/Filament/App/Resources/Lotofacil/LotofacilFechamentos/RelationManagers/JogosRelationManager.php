@@ -20,6 +20,10 @@ use Illuminate\Database\Eloquent\Builder;
 
 class JogosRelationManager extends RelationManager
 {
+    use \App\Filament\App\Concerns\HasJogosStatusCards;
+
+    protected string $view = 'filament.app.relation-managers.jogos-com-status';
+
     protected static string $relationship = 'jogos';
 
     #[\Livewire\Attributes\On('refresh-jogos-table')]

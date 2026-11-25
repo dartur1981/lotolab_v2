@@ -89,6 +89,27 @@ class RunBotCommand extends Command
 
                 $resultado = $bot->lancarJogos($jogosParaLancar, $recordIds, $modelType);
 
+                // Garante no banco Laravel que os jogos lançados fiquem carimbados como Lançado (3),
+                // mesmo se o callback em tempo real no Python falhar ou houver lançamento parcial.
+                $idsLancados = $resultado['ids_lancados'] ?? null;
+                if (is_array($idsLancados) && !empty($idsLancados)) {
+                    foreach ($jogosValidosRecords as $record) {
+                        if (in_array((int) $record->id, array_map('intval', $idsLancados), true)) {
+                            $record->refresh();
+                            if (!in_array((string) $record->status, ['3', '4'], true)) {
+                                $record->update(['status' => '3']);
+                            }
+                        }
+                    }
+                } elseif (!empty($resultado['sucesso'])) {
+                    foreach ($jogosValidosRecords as $record) {
+                        $record->refresh();
+                        if (!in_array((string) $record->status, ['3', '4'], true)) {
+                            $record->update(['status' => '3']);
+                        }
+                    }
+                }
+
                 if (!empty($resultado['sucesso'])) {
                     $totalLancados = count($jogosParaLancar);
                     $msg = "\n--- LANÇAMENTO CONCLUÍDO (ETAPA 1) ---\n"

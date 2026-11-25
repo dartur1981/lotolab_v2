@@ -626,17 +626,21 @@ def api_bot_lancar_jogos(req: BotLancarRequest):
 
         hora_inicio = datetime.now()
         inicio_fase1 = time.time()
+        ids_lancados = []
 
         def on_jogo_adicionado(index):
             if req.ids and index < len(req.ids):
+                jogo_id = req.ids[index]
+                ids_lancados.append(jogo_id)
                 try:
                     with engine_app.begin() as conn:
                         conn.execute(
                             text(f"UPDATE {table_name} SET status = '3' WHERE id = :id"),
-                            {"id": req.ids[index]}
+                            {"id": jogo_id}
                         )
                 except Exception as ex:
-                    logging.warning(f"Erro ao atualizar status do jogo {req.ids[index]} para 3: {ex}")
+                    app_logger.warning(f"Erro ao atualizar status do jogo {jogo_id} para 3 no Python: {ex}")
+                    logging.warning(f"Erro ao atualizar status do jogo {jogo_id} para 3: {ex}")
 
         sucesso = bot.lancar_jogos(req.jogos, on_jogo_adicionado=on_jogo_adicionado)
         duracao_fase1 = time.time() - inicio_fase1
@@ -661,6 +665,7 @@ def api_bot_lancar_jogos(req: BotLancarRequest):
             "status": "success",
             "data": {
                 "sucesso": sucesso,
+                "ids_lancados": ids_lancados,
                 "motivo_falha": getattr(bot, "ultimo_erro", None)
             }
         }
