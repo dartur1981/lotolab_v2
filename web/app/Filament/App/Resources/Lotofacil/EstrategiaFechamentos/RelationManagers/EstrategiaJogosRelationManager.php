@@ -229,32 +229,23 @@ class EstrategiaJogosRelationManager extends RelationManager
                             ->success()
                             ->send();
                     }),
-                \Filament\Actions\Action::make('irParaCarrinho')
-                    ->label('Ir para Carrinho')
+                \Filament\Actions\Action::make('conferirCarrinho')
+                    ->label('Conferir Carrinho')
                     ->icon('heroicon-o-shopping-cart')
-                    ->color('gray')
-                    ->action(function (\App\Services\LotofacilBotService $bot) {
-                        try {
-                            $sucesso = $bot->irParaCarrinho();
-                            if ($sucesso) {
-                                \Filament\Notifications\Notification::make()->title('Navegou para o carrinho!')->success()->send();
-                            } else {
-                                \Filament\Notifications\Notification::make()->title('Erro')->body('Não foi possível navegar (botão não encontrado).')->danger()->send();
-                            }
-                        } catch (\Throwable $e) {
-                            \Filament\Notifications\Notification::make()->title('Erro')->body($e->getMessage())->danger()->send();
-                        }
-                    }),
-                \Filament\Actions\Action::make('lerEConciliar')
-                    ->label('Ler e Conciliar Carrinho')
-                    ->icon('heroicon-o-clipboard-document-check')
                     ->color('success')
+                    ->disabled(fn () => static::isBotRunning())
                     ->action(function (\App\Services\LotofacilBotService $bot, $livewire) {
                         try {
-                            $jogosLidos = $bot->lerCarrinho('lotofacil');
-                            
+                            $dados = $bot->irELerCarrinho('lotofacil');
+                            if (empty($dados['foi_carrinho'])) {
+                                $motivo = $dados['motivo_falha'] ?? 'Não foi possível navegar para o carrinho.';
+                                \Filament\Notifications\Notification::make()->title('Erro ao abrir carrinho')->body($motivo)->danger()->send();
+                                return;
+                            }
+
+                            $jogosLidos = $dados['jogos_lidos'] ?? [];
                             if (empty($jogosLidos)) {
-                                \Filament\Notifications\Notification::make()->title('Nenhum jogo lido no carrinho.')->warning()->send();
+                                \Filament\Notifications\Notification::make()->title('Nenhum jogo encontrado no carrinho.')->warning()->send();
                                 return;
                             }
 
@@ -263,7 +254,7 @@ class EstrategiaJogosRelationManager extends RelationManager
 
                             $partes = [
                                 "{$resumo['total_lidos']} lido(s) no carrinho",
-                                "{$resumo['conciliados_agora']} conciliado(s) para Apostado",
+                                "{$resumo['conciliados_agora']} conferido(s) como Apostado",
                             ];
                             if ($resumo['ja_apostados'] > 0) {
                                 $partes[] = "{$resumo['ja_apostados']} já apostado(s)";
@@ -276,7 +267,7 @@ class EstrategiaJogosRelationManager extends RelationManager
                             }
 
                             $notif = \Filament\Notifications\Notification::make()
-                                ->title('Conciliação do carrinho concluída')
+                                ->title('Conferência do carrinho concluída')
                                 ->body(implode(' | ', $partes));
 
                             if ($resumo['divergentes'] > 0 || $resumo['extras'] > 0) {
@@ -285,7 +276,7 @@ class EstrategiaJogosRelationManager extends RelationManager
                                 $notif->success()->send();
                             }
                         } catch (\Throwable $e) {
-                            \Filament\Notifications\Notification::make()->title('Erro ao ler')->body($e->getMessage())->danger()->send();
+                            \Filament\Notifications\Notification::make()->title('Erro ao conferir carrinho')->body($e->getMessage())->danger()->send();
                         }
                     }),
                 \Filament\Actions\Action::make('destravar_robo')

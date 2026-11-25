@@ -45,14 +45,16 @@ class LotofacilBotService
     }
 
     /**
-     * Lança uma lista de jogos no dispositivo.
+     * Lança uma lista de jogos no dispositivo (Etapa 1 - sem ir para o carrinho/conciliar).
      */
-    public function lancarJogos(array $jogos): bool
+    public function lancarJogos(array $jogos, array $ids = [], string $modelType = 'lotofacil'): array
     {
         $url = "{$this->apiUrl}/bot/lancar-jogos";
         try {
-            $response = Http::timeout(600)->post($url, [
+            $response = Http::timeout(1200)->post($url, [
                 'jogos' => $jogos,
+                'ids' => array_values(array_map('intval', $ids)),
+                'model_type' => $modelType,
             ]);
 
             if ($response->failed() || $response->json('status') !== 'success') {
@@ -61,7 +63,7 @@ class LotofacilBotService
                 throw new \Exception($errorMsg);
             }
 
-            return $response->json('data.sucesso') ?? false;
+            return $response->json('data') ?? [];
         } catch (ConnectionException $e) {
             $msg = "Não foi possível conectar ao serviço Python em {$url}. Verifique se o container 'lotolab-python-v2' está em execução.";
             Log::error("LotofacilBot Erro de Conexão (lancarJogos): " . $e->getMessage());
@@ -75,9 +77,9 @@ class LotofacilBotService
     /**
      * Navega para a tela do carrinho de compras.
      */
-    public function irParaCarrinho(): bool
+    public function irParaCarrinho(string $modelType = 'lotofacil'): bool
     {
-        $url = "{$this->apiUrl}/bot/ir-para-carrinho";
+        $url = "{$this->apiUrl}/bot/ir-para-carrinho?model_type={$modelType}";
         try {
             $response = Http::timeout(60)->post($url);
 
@@ -94,6 +96,32 @@ class LotofacilBotService
             throw new \Exception($msg, 0, $e);
         } catch (\Exception $e) {
             Log::error("Erro no LotofacilBotService (irParaCarrinho): " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Navega para o carrinho (se ainda não estiver nele) e lê todos os jogos do carrinho.
+     */
+    public function irELerCarrinho(string $modelType = 'lotofacil'): array
+    {
+        $url = "{$this->apiUrl}/bot/ir-e-ler-carrinho?model_type={$modelType}";
+        try {
+            $response = Http::timeout(180)->post($url);
+
+            if ($response->failed() || $response->json('status') !== 'success') {
+                $errorMsg = $this->extractErrorMessage($response, 'Erro ao abrir e ler carrinho na API Python.', $url);
+                Log::error("LotofacilBot Erro (irELerCarrinho): {$errorMsg}");
+                throw new \Exception($errorMsg);
+            }
+
+            return $response->json('data') ?? [];
+        } catch (ConnectionException $e) {
+            $msg = "Não foi possível conectar ao serviço Python em {$url}. Verifique se o container 'lotolab-python-v2' está em execução.";
+            Log::error("LotofacilBot Erro de Conexão (irELerCarrinho): " . $e->getMessage());
+            throw new \Exception($msg, 0, $e);
+        } catch (\Exception $e) {
+            Log::error("Erro no LotofacilBotService (irELerCarrinho): " . $e->getMessage());
             throw $e;
         }
     }

@@ -85,100 +85,20 @@ class RunBotCommand extends Command
 
                 $recordIds = array_map(fn ($r) => $r->id, $jogosValidosRecords);
 
-                // Busca jogos anteriores do mesmo fechamento que já estão Lançados (3) ou Apostados (4)
-                // para evitar falsos positivos de "jogos extras" e recuperar jogos presos em Lançado (3)
-                $fechamentoIds = collect($jogosValidosRecords)
-                    ->pluck($fechamentoCol)
-                    ->filter()
-                    ->unique()
-                    ->values()
-                    ->toArray();
+                $this->info("Iniciando Lançamento de Jogos (Etapa 1 - sem conferência automática)...");
 
-                $jogosAnterioresRecords = [];
-                $jogosAnterioresDezenas = [];
-                if (!empty($fechamentoIds)) {
-                    $anterioresQuery = $modelClass::whereIn($fechamentoCol, $fechamentoIds)
-                        ->whereNotIn('id', $recordIds)
-                        ->whereIn('status', ['3', '4'])
-                        ->orderByRaw("CASE WHEN status = '4' THEN 0 ELSE 1 END")
-                        ->get();
+                $resultado = $bot->lancarJogos($jogosParaLancar, $recordIds, $modelType);
 
-                    foreach ($anterioresQuery as $antRecord) {
-                        $antDezenas = LotofacilBotService::parseDezenas($antRecord->dezenas);
-                        if (!empty($antDezenas)) {
-                            $jogosAnterioresRecords[] = $antRecord;
-                            $jogosAnterioresDezenas[] = $antDezenas;
-                        }
-                    }
+                if (!empty($resultado['sucesso'])) {
+                    $totalLancados = count($jogosParaLancar);
+                    $msg = "\n--- LANÇAMENTO CONCLUÍDO (ETAPA 1) ---\n"
+                         . "{$totalLancados} jogo(s) lançado(s) no carrinho (status: Lançado).\n"
+                         . "Clique em 'Conferir Carrinho' quando desejar validar e conciliar os jogos.";
+                    file_put_contents($logPath, $msg, FILE_APPEND);
+                } else {
+                    $motivo = $resultado['motivo_falha'] ?? "O robô não conseguiu lançar todos os jogos.";
+                    throw new \Exception("Falha no Lançamento: {$motivo}");
                 }
-
-                $this->info("Iniciando Lançamento e Conciliação no Carrinho num único processo...");
-                
-                $resultado = $bot->lancarEConciliar($jogosParaLancar, null, $recordIds, $modelType, $jogosAnterioresDezenas);
-                    
-                    if (!empty($resultado['sucesso_lancamento'])) {
-                        
-                        if (!empty($resultado['foi_carrinho']) && !empty($resultado['conciliacao'])) {
-                            $conciliacao = $resultado['conciliacao'];
-                            $qtdOk = 0;
-                            $qtdDivergente = 0;
-                            $qtdRecuperados = 0;
-                            $qtdJaApostados = 0;
-                            
-                            foreach ($jogosValidosRecords as $index => $record) {
-                                if (isset($conciliacao['jogos_processados'][$index])) {
-                                    $proc = $conciliacao['jogos_processados'][$index];
-                                    if ($proc && $proc['status'] === 'OK') {
-                                        $record->update(['status' => '4']); // 4 = Apostado (conciliado)
-                                        $qtdOk++;
-                                    } else {
-                                        $record->update(['status' => '1']); // 1 = Divergente
-                                        $qtdDivergente++;
-                                    }
-                                }
-                            }
-
-                            // Concilia também jogos anteriores do mesmo fechamento (ex: presos em Lançado=3 após queda)
-                            $anterioresProc = $conciliacao['jogos_anteriores_processados'] ?? [];
-                            foreach ($jogosAnterioresRecords as $index => $antRecord) {
-                                if (!isset($anterioresProc[$index])) {
-                                    continue;
-                                }
-                                $proc = $anterioresProc[$index];
-                                $statusAtual = (string) $antRecord->status;
-
-                                if ($proc && $proc['status'] === 'OK') {
-                                    if ($statusAtual === '3') {
-                                        $antRecord->update(['status' => '4']);
-                                        $qtdRecuperados++;
-                                    } else {
-                                        $qtdJaApostados++;
-                                    }
-                                } elseif ($statusAtual === '3') {
-                                    $antRecord->update(['status' => '1']);
-                                    $qtdDivergente++;
-                                }
-                            }
-                            
-                            $msg = "\n--- FASE 2 CONCLUIDA ---\nResumo do lote atual: {$qtdOk} OK, {$qtdDivergente} Divergentes.";
-                            if ($qtdRecuperados > 0) {
-                                $msg .= "\nRecuperados de execução anterior (Lançado -> Apostado): {$qtdRecuperados} jogo(s) conciliado(s) no carrinho.";
-                            }
-                            if ($qtdJaApostados > 0) {
-                                $msg .= "\nJá apostados anteriormente no carrinho: {$qtdJaApostados} jogo(s).";
-                            }
-                            if (!empty($conciliacao['jogos_extras'])) {
-                                $msg .= "\nAviso: Foram encontrados " . count($conciliacao['jogos_extras']) . " jogos extras no carrinho!";
-                            }
-                            file_put_contents($logPath, $msg, FILE_APPEND);
-                        } else {
-                            $motivo = $resultado['motivo_falha'] ?? "Falha ao navegar para o carrinho na Fase 2 (ou ler o carrinho).";
-                            throw new \Exception("Fase 1 OK, mas falha na Fase 2: {$motivo}");
-                        }
-                    } else {
-                        $motivo = $resultado['motivo_falha'] ?? "O robô não conseguiu lançar todos os jogos.";
-                        throw new \Exception("Falha na Fase 1: {$motivo}");
-                    }
             } elseif ($action === 'carrinho') {
                 $bot->irParaCarrinho();
             } elseif ($action === 'ler') {

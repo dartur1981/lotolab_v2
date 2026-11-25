@@ -486,18 +486,17 @@ class BotConciliarRequest(BaseModel):
     lidos: list[list[int]]
 
 @app.post("/bot/ir-para-carrinho")
-def api_bot_ir_para_carrinho():
+def api_bot_ir_para_carrinho(model_type: str = "lotofacil"):
     try:
-        from megasena.bot_megasena import MegasenaBot
-        from lotofacil.bot_lotofacil import LotofacilBot
-        try:
+        if model_type == "megasena":
+            from megasena.bot_megasena import MegasenaBot
             bot = MegasenaBot()
-            if bot.ir_para_carrinho():
-                return {"status": "success", "data": {"sucesso": True}}
-        except Exception:
-            pass
-
-        bot = LotofacilBot()
+        elif model_type == "quina":
+            from quina.bot_quina import QuinaBot
+            bot = QuinaBot(mapear_volante=False)
+        else:
+            from lotofacil.bot_lotofacil import LotofacilBot
+            bot = LotofacilBot()
         sucesso = bot.ir_para_carrinho()
         return {"status": "success", "data": {"sucesso": sucesso}}
     except Exception as e:
@@ -514,7 +513,7 @@ def api_bot_ler_carrinho(model_type: str = "lotofacil"):
             bot = MegasenaBot()
         elif model_type == "quina":
             from quina.bot_quina import QuinaBot
-            bot = QuinaBot()
+            bot = QuinaBot(mapear_volante=False)
         else:
             from lotofacil.bot_lotofacil import LotofacilBot
             bot = LotofacilBot()
@@ -524,6 +523,58 @@ def api_bot_ler_carrinho(model_type: str = "lotofacil"):
         import traceback
         import logging
         logging.error(f"Erro em /bot/ler-carrinho: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e) or repr(e))
+
+@app.post("/bot/ir-e-ler-carrinho")
+def api_bot_ir_e_ler_carrinho(model_type: str = "lotofacil"):
+    try:
+        import time
+
+        if model_type == "megasena":
+            from megasena.bot_megasena import MegasenaBot
+            bot = MegasenaBot()
+        elif model_type == "quina":
+            from quina.bot_quina import QuinaBot
+            bot = QuinaBot(mapear_volante=False)
+        else:
+            from lotofacil.bot_lotofacil import LotofacilBot
+            bot = LotofacilBot()
+
+        # Se ainda não estiver na tela do carrinho, navega até lá primeiro
+        ja_no_carrinho = (
+            bot.d(resourceId="br.gov.caixa.loterias.apostas:id/sv_carrinho").exists
+            or bot.d(resourceId="br.gov.caixa.loterias.apostas:id/numerosText").exists
+        )
+
+        foi_carrinho = True
+        if not ja_no_carrinho:
+            foi_carrinho = bot.ir_para_carrinho()
+            if foi_carrinho:
+                time.sleep(1.0)
+
+        if not foi_carrinho:
+            return {
+                "status": "success",
+                "data": {
+                    "foi_carrinho": False,
+                    "jogos_lidos": [],
+                    "motivo_falha": "Não foi possível navegar para o carrinho no app da Caixa."
+                }
+            }
+
+        jogos_lidos = bot.ler_jogos_do_carrinho()
+        return {
+            "status": "success",
+            "data": {
+                "foi_carrinho": True,
+                "jogos_lidos": jogos_lidos,
+                "motivo_falha": getattr(bot, "ultimo_erro", None)
+            }
+        }
+    except Exception as e:
+        import traceback
+        import logging
+        logging.error(f"Erro em /bot/ir-e-ler-carrinho: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e) or repr(e))
 
 @app.post("/bot/conciliar")
@@ -542,17 +593,77 @@ def api_bot_conciliar(req: BotConciliarRequest):
 @app.post("/bot/lancar-jogos")
 def api_bot_lancar_jogos(req: BotLancarRequest):
     try:
+        from sqlalchemy import text
+        import time
+        from datetime import datetime
+        import logging
+
         if req.model_type == "megasena":
-            from megasena.bot_megasena import MegasenaBot
+            from megasena.bot_megasena import MegasenaBot, logger as mega_logger
             bot = MegasenaBot()
+            table_name = "megasena_fechamento_jogos"
+            app_logger = mega_logger
         elif req.model_type == "quina":
-            from quina.bot_quina import QuinaBot
+            from quina.bot_quina import QuinaBot, logger as quina_logger
             bot = QuinaBot()
+            table_name = "quina_fechamento_jogos"
+            app_logger = quina_logger
+        elif req.model_type == "estrategia":
+            from lotofacil.bot_lotofacil import LotofacilBot
+            bot = LotofacilBot()
+            table_name = "estrategia_fechamento_jogos"
+            app_logger = logging.getLogger()
         else:
             from lotofacil.bot_lotofacil import LotofacilBot
             bot = LotofacilBot()
-        sucesso = bot.lancar_jogos(req.jogos)
-        return {"status": "success", "data": {"sucesso": sucesso}}
+            table_name = "lotofacil_fechamento_jogos"
+            app_logger = logging.getLogger()
+
+        def log_info(msg):
+            app_logger.info(msg)
+            if app_logger != logging.getLogger():
+                logging.info(msg)
+
+        hora_inicio = datetime.now()
+        inicio_fase1 = time.time()
+
+        def on_jogo_adicionado(index):
+            if req.ids and index < len(req.ids):
+                try:
+                    with engine_app.begin() as conn:
+                        conn.execute(
+                            text(f"UPDATE {table_name} SET status = '3' WHERE id = :id"),
+                            {"id": req.ids[index]}
+                        )
+                except Exception as ex:
+                    logging.warning(f"Erro ao atualizar status do jogo {req.ids[index]} para 3: {ex}")
+
+        sucesso = bot.lancar_jogos(req.jogos, on_jogo_adicionado=on_jogo_adicionado)
+        duracao_fase1 = time.time() - inicio_fase1
+        hora_fim = datetime.now()
+
+        def format_time(seconds):
+            mins, secs = divmod(int(seconds), 60)
+            hrs, mins = divmod(mins, 60)
+            return f"{hrs:02d}:{mins:02d}:{secs:02d}"
+
+        log_info("")
+        log_info("======================================================")
+        log_info("        RESUMO DE TEMPO DO LANÇAMENTO (ETAPA 1)       ")
+        log_info("======================================================")
+        log_info(f"Horário de Início : {hora_inicio.strftime('%d/%m/%Y %H:%M:%S')}")
+        log_info(f"Horário de Término: {hora_fim.strftime('%d/%m/%Y %H:%M:%S')}")
+        log_info(f"Tempo de Lançamento: {format_time(duracao_fase1)} ({duracao_fase1:.2f}s)")
+        log_info("======================================================")
+        log_info("")
+
+        return {
+            "status": "success",
+            "data": {
+                "sucesso": sucesso,
+                "motivo_falha": getattr(bot, "ultimo_erro", None)
+            }
+        }
     except Exception as e:
         import traceback
         import logging

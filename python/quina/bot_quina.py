@@ -30,7 +30,7 @@ def setup_quina_logger():
 logger = setup_quina_logger()
 
 class QuinaBot:
-    def __init__(self, serial=None):
+    def __init__(self, serial=None, mapear_volante: bool = True):
         logger.info("QuinaBot: Conectando ao dispositivo...")
         self.ultimo_erro = None
         self.coords_top = {}     # 01 a 36
@@ -67,8 +67,9 @@ class QuinaBot:
                 time.sleep(1)
                 self.d.swipe_ext("up", scale=0.5)
 
-            # Mapeia coordenadas dos botões do volante de 80 números da Quina nas 3 zonas
-            self.mapear_botoes_volante()
+            # Mapeia coordenadas dos botões do volante de 80 números da Quina nas 3 zonas (apenas quando for lançar)
+            if mapear_volante:
+                self.mapear_botoes_volante()
         except Exception as e_conn:
             msg = f"Falha ao conectar via uiautomator2 no aparelho {serial}: {e_conn}"
             logger.error(msg)
