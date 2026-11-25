@@ -293,10 +293,14 @@ class LotofacilBot:
         logging.info(f"Total de jogos lidos no carrinho: {len(jogos_lidos)}")
         return jogos_lidos
 
-    def conciliar(self, jogos_originais: list, jogos_carrinho: list) -> dict:
+    def conciliar(self, jogos_originais: list, jogos_carrinho: list, jogos_anteriores: list = None) -> dict:
         logging.info("--- INICIANDO CONCILIAÇÃO ---")
         originais_ord = [sorted(g) for g in jogos_originais]
+        anteriores_ord = [sorted(g) for g in (jogos_anteriores or [])]
         carrinho_ord = [sorted(g) for g in jogos_carrinho]
+
+        if anteriores_ord:
+            logging.info(f"Jogos anteriores do fechamento esperados no carrinho: {anteriores_ord}")
         
         resultado = []
         
@@ -312,6 +316,20 @@ class LotofacilBot:
                 "jogo": original,
                 "status": status
             })
+
+        anteriores_resultado = []
+        for i, anterior in enumerate(anteriores_ord, start=1):
+            if anterior in carrinho_ord:
+                status = "OK"
+                carrinho_ord.remove(anterior)
+            else:
+                status = "Divergente"
+
+            anteriores_resultado.append({
+                "id": i,
+                "jogo": anterior,
+                "status": status
+            })
             
         extras = []
         if carrinho_ord:
@@ -323,7 +341,9 @@ class LotofacilBot:
                 
         return {
             "jogos_processados": resultado,
-            "jogos_extras": extras
+            "jogos_anteriores_processados": anteriores_resultado,
+            "jogos_extras": extras,
+            "jogos_lidos": [sorted(g) for g in jogos_carrinho]
         }
 
 if __name__ == "__main__":

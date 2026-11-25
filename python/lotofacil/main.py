@@ -479,6 +479,7 @@ class BotLancarRequest(BaseModel):
     jogos: list[list[int]]
     ids: list[int] = []
     model_type: str = "lotofacil"
+    jogos_esperados_carrinho: list[list[int]] = []
 
 class BotConciliarRequest(BaseModel):
     jogos: list[list[int]]
@@ -621,10 +622,10 @@ def api_bot_lancar_e_conciliar(req: BotLancarRequest):
             foi_carrinho = bot.ir_para_carrinho()
             if foi_carrinho:
                 if req.model_type == "quina":
-                    jogos_lidos = bot.ler_jogos_do_carrinho(total_esperado=len(req.jogos))
+                    jogos_lidos = bot.ler_jogos_do_carrinho(total_esperado=len(req.jogos) + len(req.jogos_esperados_carrinho))
                 else:
                     jogos_lidos = bot.ler_jogos_do_carrinho()
-                conciliacao = bot.conciliar(req.jogos, jogos_lidos)
+                conciliacao = bot.conciliar(req.jogos, jogos_lidos, req.jogos_esperados_carrinho)
             fim_fase2 = time.time()
             duracao_fase2 = fim_fase2 - inicio_fase2
 

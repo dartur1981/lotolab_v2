@@ -598,12 +598,15 @@ class QuinaBot:
         logger.info(f"Total de jogos da Quina lidos no carrinho: {len(jogos_lidos)}")
         return jogos_lidos
 
-    def conciliar(self, jogos_originais: list, jogos_carrinho: list) -> dict:
+    def conciliar(self, jogos_originais: list, jogos_carrinho: list, jogos_anteriores: list = None) -> dict:
         logger.info("--- INICIANDO CONCILIAÇÃO (QUINA) ---")
         originais_ord = [sorted(g) for g in jogos_originais]
+        anteriores_ord = [sorted(g) for g in (jogos_anteriores or [])]
         carrinho_ord = [sorted(g) for g in jogos_carrinho]
 
         logger.info(f"Jogos originais enviados: {originais_ord}")
+        if anteriores_ord:
+            logger.info(f"Jogos anteriores do fechamento esperados no carrinho: {anteriores_ord}")
         logger.info(f"Jogos encontrados no carrinho: {carrinho_ord}")
 
         resultado = []
@@ -621,6 +624,20 @@ class QuinaBot:
                 "status": status
             })
 
+        anteriores_resultado = []
+        for i, anterior in enumerate(anteriores_ord, start=1):
+            if anterior in carrinho_ord:
+                status = "OK"
+                carrinho_ord.remove(anterior)
+            else:
+                status = "Divergente"
+
+            anteriores_resultado.append({
+                "id": i,
+                "jogo": anterior,
+                "status": status
+            })
+
         extras = []
         if carrinho_ord:
             for extra in carrinho_ord:
@@ -631,5 +648,7 @@ class QuinaBot:
 
         return {
             "jogos_processados": resultado,
-            "jogos_extras": extras
+            "jogos_anteriores_processados": anteriores_resultado,
+            "jogos_extras": extras,
+            "jogos_lidos": [sorted(g) for g in jogos_carrinho]
         }

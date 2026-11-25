@@ -252,17 +252,43 @@ class JogosRelationManager extends RelationManager
                         }
                     }),
                 \Filament\Actions\Action::make('lerEConciliar')
-                    ->label('Ler Carrinho')
+                    ->label('Ler e Conciliar Carrinho')
                     ->icon('heroicon-o-clipboard-document-check')
                     ->color('success')
-                    ->action(function (\App\Services\LotofacilBotService $bot) {
+                    ->action(function (\App\Services\LotofacilBotService $bot, $livewire) {
                         try {
                             $jogosLidos = $bot->lerCarrinho('megasena');
                             if (empty($jogosLidos)) {
                                 \Filament\Notifications\Notification::make()->title('Nenhum jogo lido no carrinho.')->warning()->send();
                                 return;
                             }
-                            \Filament\Notifications\Notification::make()->title(count($jogosLidos) . ' jogos da Mega-Sena lidos no carrinho.')->success()->send();
+
+                            $fechamento = $livewire->getOwnerRecord();
+                            $resumo = $bot->conciliarFechamentoComCarrinho($fechamento, $jogosLidos);
+
+                            $partes = [
+                                "{$resumo['total_lidos']} lido(s) no carrinho",
+                                "{$resumo['conciliados_agora']} conciliado(s) para Apostado",
+                            ];
+                            if ($resumo['ja_apostados'] > 0) {
+                                $partes[] = "{$resumo['ja_apostados']} já apostado(s)";
+                            }
+                            if ($resumo['divergentes'] > 0) {
+                                $partes[] = "{$resumo['divergentes']} divergente(s)";
+                            }
+                            if ($resumo['extras'] > 0) {
+                                $partes[] = "{$resumo['extras']} extra(s) fora do fechamento";
+                            }
+
+                            $notif = \Filament\Notifications\Notification::make()
+                                ->title('Conciliação do carrinho concluída')
+                                ->body(implode(' | ', $partes));
+
+                            if ($resumo['divergentes'] > 0 || $resumo['extras'] > 0) {
+                                $notif->warning()->send();
+                            } else {
+                                $notif->success()->send();
+                            }
                         } catch (\Throwable $e) {
                             \Filament\Notifications\Notification::make()->title('Erro ao ler')->body($e->getMessage())->danger()->send();
                         }

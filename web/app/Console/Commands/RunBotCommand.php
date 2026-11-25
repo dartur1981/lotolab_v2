@@ -50,36 +50,32 @@ class RunBotCommand extends Command
                 
                 $ids = array_filter(array_map('trim', explode(',', $idsStr)));
                 if ($modelType === 'estrategia') {
-                    $jogosRecords = \App\Models\Lotofacil\EstrategiaFechamentoJogo::whereIn('id', $ids)->get();
+                    $modelClass = \App\Models\Lotofacil\EstrategiaFechamentoJogo::class;
+                    $fechamentoCol = 'estrategia_fechamento_id';
                 } elseif ($modelType === 'megasena') {
-                    $jogosRecords = \App\Models\Megasena\MegasenaFechamentoJogo::whereIn('id', $ids)->get();
+                    $modelClass = \App\Models\Megasena\MegasenaFechamentoJogo::class;
+                    $fechamentoCol = 'fechamento_id';
                 } elseif ($modelType === 'quina') {
-                    $jogosRecords = \App\Models\Quina\QuinaFechamentoJogo::whereIn('id', $ids)->get();
+                    $modelClass = \App\Models\Quina\QuinaFechamentoJogo::class;
+                    $fechamentoCol = 'fechamento_id';
                 } else {
-                    $jogosRecords = LotofacilFechamentoJogo::whereIn('id', $ids)->get();
+                    $modelClass = LotofacilFechamentoJogo::class;
+                    $fechamentoCol = 'fechamento_id';
                 }
+
+                $jogosRecords = $modelClass::whereIn('id', $ids)->get();
 
                 if ($jogosRecords->isEmpty()) {
                     throw new \Exception("Nenhum registro de jogo encontrado no banco para os IDs: {$idsStr} (Modelo: {$modelType})");
                 }
                 
                 $jogosParaLancar = [];
+                $jogosValidosRecords = [];
                 foreach ($jogosRecords as $record) {
-                    $val = $record->dezenas;
-                    if (is_string($val)) {
-                        $decoded = json_decode($val, true);
-                        if (is_array($decoded)) {
-                            $dezenas = array_map('intval', $decoded);
-                        } else {
-                            $dezenas = array_map('intval', explode(',', $val));
-                        }
-                    } else if (is_array($val)) {
-                        $dezenas = array_map('intval', $val);
-                    } else {
-                        $dezenas = [];
-                    }
+                    $dezenas = LotofacilBotService::parseDezenas($record->dezenas);
                     if (!empty($dezenas)) {
                         $jogosParaLancar[] = $dezenas;
+                        $jogosValidosRecords[] = $record;
                     }
                 }
                 
@@ -87,10 +83,38 @@ class RunBotCommand extends Command
                     throw new \Exception("Nenhuma dezena válida encontrada nos jogos selecionados (IDs: {$idsStr}).");
                 }
 
+                $recordIds = array_map(fn ($r) => $r->id, $jogosValidosRecords);
+
+                // Busca jogos anteriores do mesmo fechamento que já estão Lançados (3) ou Apostados (4)
+                // para evitar falsos positivos de "jogos extras" e recuperar jogos presos em Lançado (3)
+                $fechamentoIds = collect($jogosValidosRecords)
+                    ->pluck($fechamentoCol)
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                $jogosAnterioresRecords = [];
+                $jogosAnterioresDezenas = [];
+                if (!empty($fechamentoIds)) {
+                    $anterioresQuery = $modelClass::whereIn($fechamentoCol, $fechamentoIds)
+                        ->whereNotIn('id', $recordIds)
+                        ->whereIn('status', ['3', '4'])
+                        ->orderByRaw("CASE WHEN status = '4' THEN 0 ELSE 1 END")
+                        ->get();
+
+                    foreach ($anterioresQuery as $antRecord) {
+                        $antDezenas = LotofacilBotService::parseDezenas($antRecord->dezenas);
+                        if (!empty($antDezenas)) {
+                            $jogosAnterioresRecords[] = $antRecord;
+                            $jogosAnterioresDezenas[] = $antDezenas;
+                        }
+                    }
+                }
+
                 $this->info("Iniciando Lançamento e Conciliação no Carrinho num único processo...");
                 
-                $recordIds = $jogosRecords->pluck('id')->toArray();
-                $resultado = $bot->lancarEConciliar($jogosParaLancar, null, $recordIds, $modelType);
+                $resultado = $bot->lancarEConciliar($jogosParaLancar, null, $recordIds, $modelType, $jogosAnterioresDezenas);
                     
                     if (!empty($resultado['sucesso_lancamento'])) {
                         
@@ -98,10 +122,12 @@ class RunBotCommand extends Command
                             $conciliacao = $resultado['conciliacao'];
                             $qtdOk = 0;
                             $qtdDivergente = 0;
+                            $qtdRecuperados = 0;
+                            $qtdJaApostados = 0;
                             
-                            foreach ($jogosRecords as $index => $record) {
-                                if (isset($resultado['conciliacao']['jogos_processados'][$index])) {
-                                    $proc = $resultado['conciliacao']['jogos_processados'][$index];
+                            foreach ($jogosValidosRecords as $index => $record) {
+                                if (isset($conciliacao['jogos_processados'][$index])) {
+                                    $proc = $conciliacao['jogos_processados'][$index];
                                     if ($proc && $proc['status'] === 'OK') {
                                         $record->update(['status' => '4']); // 4 = Apostado (conciliado)
                                         $qtdOk++;
@@ -111,8 +137,36 @@ class RunBotCommand extends Command
                                     }
                                 }
                             }
+
+                            // Concilia também jogos anteriores do mesmo fechamento (ex: presos em Lançado=3 após queda)
+                            $anterioresProc = $conciliacao['jogos_anteriores_processados'] ?? [];
+                            foreach ($jogosAnterioresRecords as $index => $antRecord) {
+                                if (!isset($anterioresProc[$index])) {
+                                    continue;
+                                }
+                                $proc = $anterioresProc[$index];
+                                $statusAtual = (string) $antRecord->status;
+
+                                if ($proc && $proc['status'] === 'OK') {
+                                    if ($statusAtual === '3') {
+                                        $antRecord->update(['status' => '4']);
+                                        $qtdRecuperados++;
+                                    } else {
+                                        $qtdJaApostados++;
+                                    }
+                                } elseif ($statusAtual === '3') {
+                                    $antRecord->update(['status' => '1']);
+                                    $qtdDivergente++;
+                                }
+                            }
                             
-                            $msg = "\n--- FASE 2 CONCLUIDA ---\nResumo: {$qtdOk} OK, {$qtdDivergente} Divergentes.";
+                            $msg = "\n--- FASE 2 CONCLUIDA ---\nResumo do lote atual: {$qtdOk} OK, {$qtdDivergente} Divergentes.";
+                            if ($qtdRecuperados > 0) {
+                                $msg .= "\nRecuperados de execução anterior (Lançado -> Apostado): {$qtdRecuperados} jogo(s) conciliado(s) no carrinho.";
+                            }
+                            if ($qtdJaApostados > 0) {
+                                $msg .= "\nJá apostados anteriormente no carrinho: {$qtdJaApostados} jogo(s).";
+                            }
                             if (!empty($conciliacao['jogos_extras'])) {
                                 $msg .= "\nAviso: Foram encontrados " . count($conciliacao['jogos_extras']) . " jogos extras no carrinho!";
                             }

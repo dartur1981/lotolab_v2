@@ -155,9 +155,118 @@ class LotofacilBotService
     }
 
     /**
+     * Normaliza o campo dezenas (JSON, CSV ou array) para um array ordenado de inteiros.
+     */
+    public static function parseDezenas($val): array
+    {
+        if (is_string($val)) {
+            $decoded = json_decode($val, true);
+            if (is_array($decoded)) {
+                $dezenas = array_map('intval', $decoded);
+            } else {
+                $parts = array_filter(array_map('trim', explode(',', $val)), fn ($v) => $v !== '');
+                $dezenas = array_map('intval', $parts);
+            }
+        } elseif (is_array($val)) {
+            $dezenas = array_map('intval', $val);
+        } else {
+            $dezenas = [];
+        }
+
+        sort($dezenas);
+        return array_values($dezenas);
+    }
+
+    /**
+     * Concilia os jogos de um fechamento com a lista de jogos lidos no carrinho.
+     * Promove jogos Lançados (3) ou Pendentes/Divergentes (0/1) encontrados no carrinho para Apostado (4),
+     * marca jogos Lançados (3) ausentes como Divergente (1) e identifica extras reais.
+     */
+    public function conciliarFechamentoComCarrinho($fechamento, array $jogosLidos): array
+    {
+        $restantesCarrinho = [];
+        foreach ($jogosLidos as $jogo) {
+            $norm = self::parseDezenas($jogo);
+            if (!empty($norm)) {
+                $restantesCarrinho[] = $norm;
+            }
+        }
+
+        $consumirDoCarrinho = function (array $dezenasAlvo) use (&$restantesCarrinho): bool {
+            foreach ($restantesCarrinho as $idx => $jogoCarrinho) {
+                if ($jogoCarrinho === $dezenasAlvo) {
+                    unset($restantesCarrinho[$idx]);
+                    $restantesCarrinho = array_values($restantesCarrinho);
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        $todosJogos = $fechamento->jogos()->get();
+
+        $jaApostados = 0;
+        $conciliadosDeLancado = 0;
+        $conciliadosDePendente = 0;
+        $divergentes = 0;
+
+        // 1. Primeiro desconta os que já estão Apostados (4)
+        foreach ($todosJogos as $record) {
+            if ((string) $record->status !== '4') {
+                continue;
+            }
+            $dezenas = self::parseDezenas($record->dezenas);
+            if (!empty($dezenas) && $consumirDoCarrinho($dezenas)) {
+                $jaApostados++;
+            }
+        }
+
+        // 2. Concilia os que ficaram como Lançado (3) — ex: queda no app da Caixa antes da Fase 2
+        foreach ($todosJogos as $record) {
+            if ((string) $record->status !== '3') {
+                continue;
+            }
+            $dezenas = self::parseDezenas($record->dezenas);
+            if (empty($dezenas)) {
+                continue;
+            }
+            if ($consumirDoCarrinho($dezenas)) {
+                $record->update(['status' => '4']);
+                $conciliadosDeLancado++;
+            } else {
+                $record->update(['status' => '1']);
+                $divergentes++;
+            }
+        }
+
+        // 3. Confere se algum Pendente (0) ou Divergente (1) já está no carrinho
+        foreach ($todosJogos as $record) {
+            if (!in_array((string) $record->status, ['0', '1'], true)) {
+                continue;
+            }
+            $dezenas = self::parseDezenas($record->dezenas);
+            if (!empty($dezenas) && $consumirDoCarrinho($dezenas)) {
+                $record->update(['status' => '4']);
+                $conciliadosDePendente++;
+            }
+        }
+
+        return [
+            'total_lidos' => count($jogosLidos),
+            'ja_apostados' => $jaApostados,
+            'conciliados_agora' => $conciliadosDeLancado + $conciliadosDePendente,
+            'conciliados_de_lancado' => $conciliadosDeLancado,
+            'conciliados_de_pendente' => $conciliadosDePendente,
+            'divergentes' => $divergentes,
+            'extras' => count($restantesCarrinho),
+            'jogos_extras' => $restantesCarrinho,
+        ];
+    }
+
+    /**
      * Executa o lançamento e em seguida a conciliação no carrinho num único processo.
      */
-    public function lancarEConciliar(array $jogos, ?callable $callback = null, array $ids = [], string $modelType = 'lotofacil'): array
+    public function lancarEConciliar(array $jogos, ?callable $callback = null, array $ids = [], string $modelType = 'lotofacil', array $jogosAnteriores = []): array
     {
         $url = "{$this->apiUrl}/bot/lancar-e-conciliar";
         try {
@@ -165,6 +274,7 @@ class LotofacilBotService
                 'jogos' => $jogos,
                 'ids' => array_values(array_map('intval', $ids)),
                 'model_type' => $modelType,
+                'jogos_esperados_carrinho' => array_values($jogosAnteriores),
             ]);
 
             if ($response->failed() || $response->json('status') !== 'success') {
