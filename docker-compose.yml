@@ -12,6 +12,7 @@ services:
     volumes:
       - ./python/lotofacil:/app/lotofacil
       - ./python/megasena:/app/megasena
+      - ./python/quina:/app/quina
       - ./logs:/logs
       - ./data:/data
       - ./logs:/var/www/logs
