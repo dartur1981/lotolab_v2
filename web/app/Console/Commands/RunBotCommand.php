@@ -9,7 +9,7 @@ use App\Models\Lotofacil\LotofacilFechamentoJogo;
 use App\Services\LotofacilBotService;
 use Illuminate\Support\Facades\Log;
 
-#[Signature('bot:run {action} {--ids=} {--lidos=} {--model=lotofacil}')]
+#[Signature('bot:run {action} {--ids=} {--lidos=} {--fechamento=} {--model=lotofacil}')]
 #[Description('Executa o bot do ADB em background')]
 class RunBotCommand extends Command
 {
@@ -17,6 +17,7 @@ class RunBotCommand extends Command
     {
         $action = $this->argument('action');
         $idsStr = $this->option('ids');
+        $fechamentoId = $this->option('fechamento');
         $modelType = $this->option('model') ?: 'lotofacil';
         $logFileName = match ($modelType) {
             'megasena' => 'bot_megasena.log',
@@ -120,6 +121,48 @@ class RunBotCommand extends Command
                     $motivo = $resultado['motivo_falha'] ?? "O robô não conseguiu lançar todos os jogos.";
                     throw new \Exception("Falha no Lançamento: {$motivo}");
                 }
+            } elseif ($action === 'conferir') {
+                if (!$fechamentoId) {
+                    throw new \Exception("ID do fechamento não fornecido para conferência do carrinho.");
+                }
+
+                $fechamentoClass = match ($modelType) {
+                    'estrategia' => \App\Models\Lotofacil\EstrategiaFechamento::class,
+                    'megasena' => \App\Models\Megasena\MegasenaFechamento::class,
+                    'quina' => \App\Models\Quina\QuinaFechamento::class,
+                    default => \App\Models\Lotofacil\LotofacilFechamento::class,
+                };
+
+                $fechamento = $fechamentoClass::find($fechamentoId);
+                if (!$fechamento) {
+                    throw new \Exception("Fechamento #{$fechamentoId} não encontrado (Modelo: {$modelType}).");
+                }
+
+                $apiModelType = ($modelType === 'estrategia') ? 'lotofacil' : $modelType;
+                $this->info("Iniciando Conferência do Carrinho (Etapa 2) para Fechamento #{$fechamentoId}...");
+
+                $dados = $bot->irELerCarrinho($apiModelType);
+                if (empty($dados['foi_carrinho'])) {
+                    $motivo = $dados['motivo_falha'] ?? "Não foi possível navegar para o carrinho no app da Caixa.";
+                    throw new \Exception("Falha ao abrir carrinho: {$motivo}");
+                }
+
+                $jogosLidos = $dados['jogos_lidos'] ?? [];
+                if (empty($jogosLidos)) {
+                    throw new \Exception("Nenhum jogo foi encontrado no carrinho do app da Caixa.");
+                }
+
+                $resumo = $bot->conciliarFechamentoComCarrinho($fechamento, $jogosLidos);
+
+                $msg = "\n--- CONFERÊNCIA DO CARRINHO CONCLUÍDA (ETAPA 2) ---\n"
+                     . "Jogos lidos no carrinho: {$resumo['total_lidos']}\n"
+                     . "Conferidos agora (status -> Apostado): {$resumo['conciliados_agora']}\n"
+                     . "Já estavam Apostados: {$resumo['ja_apostados']}\n"
+                     . "Divergentes (Lançados não encontrados): {$resumo['divergentes']}\n";
+                if ($resumo['extras'] > 0) {
+                    $msg .= "Aviso: {$resumo['extras']} jogo(s) no carrinho não pertencem a este fechamento.\n";
+                }
+                file_put_contents($logPath, $msg, FILE_APPEND);
             } elseif ($action === 'carrinho') {
                 $bot->irParaCarrinho();
             } elseif ($action === 'ler') {

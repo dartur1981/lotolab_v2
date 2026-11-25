@@ -319,9 +319,39 @@ class MegasenaBot:
         self.ultimo_erro = msg
         return False
 
+    def _extrair_jogos_do_xml(self, xml_str: str) -> list:
+        import xml.etree.ElementTree as ET
+        jogos_tela = []
+        try:
+            root = ET.fromstring(xml_str)
+        except Exception as e:
+            logger.warning(f"Falha ao fazer parse do XML do carrinho (Mega-Sena): {e}")
+            return jogos_tela
+
+        nos_numeros = [
+            node for node in root.iter('node')
+            if node.attrib.get('resource-id') == 'br.gov.caixa.loterias.apostas:id/numerosText'
+        ]
+        if not nos_numeros:
+            nos_numeros = [
+                node for node in root.iter('node')
+                if node.attrib.get('class') == 'android.widget.TextView'
+            ]
+
+        for node in nos_numeros:
+            texto = (node.attrib.get('text') or '').strip()
+            if not texto:
+                continue
+            numeros = [int(n) for n in texto.replace('-', ' ').split() if n.isdigit()]
+            if len(numeros) == 6 and all(1 <= n <= 60 for n in numeros):
+                jogos_tela.append(sorted(numeros))
+
+        return jogos_tela
+
     def ler_jogos_do_carrinho(self) -> list:
         logger.info("--- INICIANDO FASE 2: LEITURA DO CARRINHO (MEGA-SENA) ---")
         jogos_lidos = []
+        jogos_vistos = set()
 
         scroll_view = self.d(resourceId="br.gov.caixa.loterias.apostas:id/sv_carrinho")
         if not scroll_view.exists:
@@ -329,45 +359,44 @@ class MegasenaBot:
 
         if scroll_view.exists:
             try:
-                scroll_view.scroll.toBeginning(max_swipes=5)
+                scroll_view.scroll.toBeginning(max_swipes=30)
+                time.sleep(0.5)
             except Exception:
                 pass
 
         tentativas_sem_novos = 0
 
-        while True:
-            containers_aposta = self.d(resourceId="br.gov.caixa.loterias.apostas:id/contentTest")
-            if not containers_aposta.exists or containers_aposta.count == 0:
-                containers_aposta = self.d(resourceId="br.gov.caixa.loterias.apostas:id/numerosText")
+        for rolagem in range(1, 151):
+            try:
+                xml_tela = self.d.dump_hierarchy()
+            except Exception as e:
+                logger.warning(f"Erro ao capturar hierarquia na rolagem {rolagem}: {e}")
+                tentativas_sem_novos += 1
+                if tentativas_sem_novos >= 3:
+                    break
+                time.sleep(0.6)
+                continue
 
             jogos_adicionados_nesta_tela = 0
-            for container in containers_aposta:
-                try:
-                    if container.info.get('resourceName') == "br.gov.caixa.loterias.apostas:id/numerosText":
-                        texto = container.info['text']
-                    else:
-                        child = container.child(resourceId="br.gov.caixa.loterias.apostas:id/numerosText")
-                        texto = child.info['text'] if child.exists else ""
+            for jogo in self._extrair_jogos_do_xml(xml_tela):
+                chave = tuple(jogo)
+                if chave not in jogos_vistos:
+                    jogos_vistos.add(chave)
+                    jogos_lidos.append(jogo)
+                    jogos_adicionados_nesta_tela += 1
 
-                    numeros = [int(n) for n in texto.replace('-', ' ').split() if n.isdigit()]
-                    # Mega-Sena padrão possui 6 dezenas
-                    if len(numeros) == 6:
-                        numeros_ord = sorted(numeros)
-                        if numeros_ord not in jogos_lidos:
-                            jogos_lidos.append(numeros_ord)
-                            jogos_adicionados_nesta_tela += 1
-                except Exception as e:
-                    logger.warning(f"Ignorando container de aposta que não pôde ser lido: {e}")
+            if rolagem == 1 or rolagem % 5 == 0 or jogos_adicionados_nesta_tela == 0:
+                logger.info(f"Rolagem {rolagem}: +{jogos_adicionados_nesta_tela} novos (total lidos: {len(jogos_lidos)})")
 
             if jogos_adicionados_nesta_tela == 0:
                 tentativas_sem_novos += 1
-                if tentativas_sem_novos >= 2:
+                if tentativas_sem_novos >= 3:
                     break
             else:
                 tentativas_sem_novos = 0
 
-            self.d.swipe_ext("up", scale=0.6)
-            time.sleep(1)
+            self.d.swipe_ext("up", scale=0.55)
+            time.sleep(0.65)
 
         logger.info(f"Total de jogos da Mega-Sena lidos no carrinho: {len(jogos_lidos)}")
         return jogos_lidos

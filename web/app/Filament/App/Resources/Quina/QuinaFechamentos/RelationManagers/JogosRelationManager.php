@@ -71,7 +71,7 @@ class JogosRelationManager extends RelationManager
         return 'php';
     }
 
-    protected static function executeBackgroundBot(string $action, ?string $ids = null, string $modelType = 'quina')
+    protected static function executeBackgroundBot(string $action, ?string $ids = null, string $modelType = 'quina', ?int $fechamentoId = null)
     {
         $logDir = base_path('../logs');
         if (!is_dir($logDir)) {
@@ -89,6 +89,9 @@ class JogosRelationManager extends RelationManager
         $args = "bot:run " . escapeshellarg($action);
         if ($ids) {
             $args .= " --ids=" . escapeshellarg($ids);
+        }
+        if ($fechamentoId) {
+            $args .= " --fechamento=" . escapeshellarg((string) $fechamentoId);
         }
         $args .= " --model=" . escapeshellarg($modelType);
 
@@ -249,49 +252,17 @@ class JogosRelationManager extends RelationManager
                     ->icon('heroicon-o-shopping-cart')
                     ->color('success')
                     ->disabled(fn () => static::isBotRunning())
-                    ->action(function (\App\Services\LotofacilBotService $bot, $livewire) {
+                    ->action(function ($livewire) {
                         try {
-                            $dados = $bot->irELerCarrinho('quina');
-                            if (empty($dados['foi_carrinho'])) {
-                                $motivo = $dados['motivo_falha'] ?? 'Não foi possível navegar para o carrinho.';
-                                \Filament\Notifications\Notification::make()->title('Erro ao abrir carrinho')->body($motivo)->danger()->send();
-                                return;
-                            }
-
-                            $jogosLidos = $dados['jogos_lidos'] ?? [];
-                            if (empty($jogosLidos)) {
-                                \Filament\Notifications\Notification::make()->title('Nenhum jogo encontrado no carrinho.')->warning()->send();
-                                return;
-                            }
-
                             $fechamento = $livewire->getOwnerRecord();
-                            $resumo = $bot->conciliarFechamentoComCarrinho($fechamento, $jogosLidos);
-
-                            $partes = [
-                                "{$resumo['total_lidos']} lido(s) no carrinho",
-                                "{$resumo['conciliados_agora']} conferido(s) como Apostado",
-                            ];
-                            if ($resumo['ja_apostados'] > 0) {
-                                $partes[] = "{$resumo['ja_apostados']} já apostado(s)";
-                            }
-                            if ($resumo['divergentes'] > 0) {
-                                $partes[] = "{$resumo['divergentes']} divergente(s)";
-                            }
-                            if ($resumo['extras'] > 0) {
-                                $partes[] = "{$resumo['extras']} extra(s) fora do fechamento";
-                            }
-
-                            $notif = \Filament\Notifications\Notification::make()
-                                ->title('Conferência do carrinho concluída')
-                                ->body(implode(' | ', $partes));
-
-                            if ($resumo['divergentes'] > 0 || $resumo['extras'] > 0) {
-                                $notif->warning()->send();
-                            } else {
-                                $notif->success()->send();
-                            }
+                            static::executeBackgroundBot('conferir', null, 'quina', (int) $fechamento->id);
+                            \Filament\Notifications\Notification::make()
+                                ->title('Conferência do carrinho iniciada!')
+                                ->body('O robô está lendo e conciliando os jogos em background. Acompanhe nos logs e nos cards de status.')
+                                ->success()
+                                ->send();
                         } catch (\Throwable $e) {
-                            \Filament\Notifications\Notification::make()->title('Erro ao conferir carrinho')->body($e->getMessage())->danger()->send();
+                            \Filament\Notifications\Notification::make()->title('Erro ao iniciar conferência')->body($e->getMessage())->danger()->send();
                         }
                     }),
                 \Filament\Actions\Action::make('destravar_robo')

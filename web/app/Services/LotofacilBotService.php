@@ -107,7 +107,7 @@ class LotofacilBotService
     {
         $url = "{$this->apiUrl}/bot/ir-e-ler-carrinho?model_type={$modelType}";
         try {
-            $response = Http::timeout(180)->post($url);
+            $response = Http::timeout(600)->post($url);
 
             if ($response->failed() || $response->json('status') !== 'success') {
                 $errorMsg = $this->extractErrorMessage($response, 'Erro ao abrir e ler carrinho na API Python.', $url);

@@ -243,52 +243,92 @@ class LotofacilBot:
             logging.error(f"Erro ao extrair dezenas do container: {e}")
             return []
 
+    def _extrair_jogos_do_xml(self, xml_str: str) -> list:
+        import xml.etree.ElementTree as ET
+        jogos_tela = []
+        try:
+            root = ET.fromstring(xml_str)
+        except Exception as e:
+            logging.warning(f"Falha ao fazer parse do XML do carrinho (Lotofácil): {e}")
+            return jogos_tela
+
+        nos_numeros = [
+            node for node in root.iter('node')
+            if node.attrib.get('resource-id') == 'br.gov.caixa.loterias.apostas:id/numerosText'
+        ]
+        if not nos_numeros:
+            nos_numeros = [
+                node for node in root.iter('node')
+                if node.attrib.get('class') == 'android.widget.TextView'
+            ]
+
+        for node in nos_numeros:
+            texto = (node.attrib.get('text') or '').strip()
+            if not texto:
+                continue
+            numeros = [int(n) for n in texto.replace('-', ' ').split() if n.isdigit()]
+            if len(numeros) == 15 and all(1 <= n <= 25 for n in numeros):
+                jogos_tela.append(sorted(numeros))
+
+        return jogos_tela
+
     def ler_jogos_do_carrinho(self) -> list:
         logging.info("--- INICIANDO FASE 2: LEITURA DO CARRINHO ---")
         jogos_lidos = []
-        
-        # O id 'com.app:id/cart_item_container' é um placeholder. 
-        # Vamos fazer um dump da tela para que eu (IA) possa ver a estrutura real!
-        try:
-            xml = self.d.dump_hierarchy()
-            dump_file = os.path.join(os.path.dirname(__file__), "ui_dump_carrinho_lista.xml")
-            with open(dump_file, "w", encoding="utf-8") as f:
-                f.write(xml)
-            logging.info("Dump da tela do carrinho salvo em ui_dump_carrinho_lista.xml para debug.")
-        except Exception as e:
-            pass
+        jogos_vistos = set()
 
         scroll_view = self.d(resourceId="br.gov.caixa.loterias.apostas:id/sv_carrinho")
+        if not scroll_view.exists:
+            scroll_view = self.d(className="android.widget.ScrollView")
+
         if scroll_view.exists:
-            scroll_view.scroll.toBeginning(max_swipes=5)
+            try:
+                scroll_view.scroll.toBeginning(max_swipes=30)
+                time.sleep(0.5)
+            except Exception:
+                pass
             
         tentativas_sem_novos = 0
         
-        while True:
-            containers_aposta = self.d(resourceId="br.gov.caixa.loterias.apostas:id/contentTest") 
-            
+        for rolagem in range(1, 151):
+            try:
+                xml_tela = self.d.dump_hierarchy()
+                if rolagem == 1:
+                    try:
+                        dump_file = os.path.join(os.path.dirname(__file__), "ui_dump_carrinho_lista.xml")
+                        with open(dump_file, "w", encoding="utf-8") as f:
+                            f.write(xml_tela)
+                    except Exception:
+                        pass
+            except Exception as e:
+                logging.warning(f"Erro ao capturar hierarquia na rolagem {rolagem}: {e}")
+                tentativas_sem_novos += 1
+                if tentativas_sem_novos >= 3:
+                    break
+                time.sleep(0.6)
+                continue
+
             jogos_adicionados_nesta_tela = 0
-            for container in containers_aposta:
-                try:
-                    texto = container.child(resourceId="br.gov.caixa.loterias.apostas:id/numerosText").info['text']
-                    numeros = [int(n) for n in texto.replace('-', ' ').split() if n.isdigit()]
-                    if len(numeros) == 15:
-                        if numeros not in jogos_lidos:
-                            jogos_lidos.append(numeros)
-                            jogos_adicionados_nesta_tela += 1
-                except Exception as e:
-                    logging.warning(f"Ignorando um container de aposta que não pôde ser lido: {e}")
+            for jogo in self._extrair_jogos_do_xml(xml_tela):
+                chave = tuple(jogo)
+                if chave not in jogos_vistos:
+                    jogos_vistos.add(chave)
+                    jogos_lidos.append(jogo)
+                    jogos_adicionados_nesta_tela += 1
+
+            if rolagem == 1 or rolagem % 5 == 0 or jogos_adicionados_nesta_tela == 0:
+                logging.info(f"Rolagem {rolagem}: +{jogos_adicionados_nesta_tela} novos (total lidos: {len(jogos_lidos)})")
                     
             if jogos_adicionados_nesta_tela == 0:
                 tentativas_sem_novos += 1
-                if tentativas_sem_novos >= 2:
+                if tentativas_sem_novos >= 3:
                     break
             else:
                 tentativas_sem_novos = 0
                 
             # Força a rolagem para baixo deslizando o dedo de forma genérica
-            self.d.swipe_ext("up", scale=0.6)
-            time.sleep(1)
+            self.d.swipe_ext("up", scale=0.55)
+            time.sleep(0.65)
             
         logging.info(f"Total de jogos lidos no carrinho: {len(jogos_lidos)}")
         return jogos_lidos
