@@ -321,4 +321,100 @@ class LotofacilBotService
             throw $e;
         }
     }
+
+    /**
+     * Lista os dispositivos Android atualmente conectados via ADB no container Python.
+     */
+    public function adbDevices(): array
+    {
+        $url = "{$this->apiUrl}/bot/adb/devices";
+        try {
+            $response = Http::timeout(15)->get($url);
+            if ($response->failed() || $response->json('status') !== 'success') {
+                throw new \Exception($this->extractErrorMessage($response, 'Erro ao consultar dispositivos ADB.', $url));
+            }
+            return $response->json('data.devices') ?? [];
+        } catch (ConnectionException $e) {
+            throw new \Exception("Não foi possível conectar ao serviço Python em {$url}.", 0, $e);
+        }
+    }
+
+    /**
+     * Pareia um dispositivo Android via ADB Wireless (adb pair IP:PORTA CODIGO).
+     */
+    public function adbPair(string $ip, string $porta, string $codigo): array
+    {
+        $url = "{$this->apiUrl}/bot/adb/pair";
+        try {
+            $response = Http::timeout(30)->post($url, [
+                'ip' => trim($ip),
+                'porta' => trim($porta),
+                'codigo' => trim($codigo),
+            ]);
+            if ($response->failed() || $response->json('status') !== 'success') {
+                throw new \Exception($this->extractErrorMessage($response, 'Erro ao parear dispositivo ADB.', $url));
+            }
+            return $response->json('data') ?? [];
+        } catch (ConnectionException $e) {
+            throw new \Exception("Não foi possível conectar ao serviço Python em {$url}.", 0, $e);
+        }
+    }
+
+    /**
+     * Conecta a um dispositivo Android via ADB Wireless (adb connect IP:PORTA).
+     */
+    public function adbConnect(string $ip, string $porta): array
+    {
+        $url = "{$this->apiUrl}/bot/adb/connect";
+        try {
+            $response = Http::timeout(25)->post($url, [
+                'ip' => trim($ip),
+                'porta' => trim($porta),
+            ]);
+            if ($response->failed() || $response->json('status') !== 'success') {
+                throw new \Exception($this->extractErrorMessage($response, 'Erro ao conectar dispositivo ADB.', $url));
+            }
+            return $response->json('data') ?? [];
+        } catch (ConnectionException $e) {
+            throw new \Exception("Não foi possível conectar ao serviço Python em {$url}.", 0, $e);
+        }
+    }
+
+    /**
+     * Desconecta um dispositivo (ou todos) via ADB.
+     */
+    public function adbDisconnect(?string $serial = null): array
+    {
+        $url = "{$this->apiUrl}/bot/adb/disconnect";
+        try {
+            $response = Http::timeout(15)->post($url, [
+                'serial' => $serial,
+            ]);
+            if ($response->failed() || $response->json('status') !== 'success') {
+                throw new \Exception($this->extractErrorMessage($response, 'Erro ao desconectar dispositivo ADB.', $url));
+            }
+            return $response->json('data') ?? [];
+        } catch (ConnectionException $e) {
+            throw new \Exception("Não foi possível conectar ao serviço Python em {$url}.", 0, $e);
+        }
+    }
+
+    /**
+     * Valida a comunicação do robô (uiautomator2) com o dispositivo conectado.
+     */
+    public function adbTest(?string $serial = null): array
+    {
+        $url = "{$this->apiUrl}/bot/adb/test";
+        try {
+            $response = Http::timeout(25)->post($url, [
+                'serial' => $serial,
+            ]);
+            if ($response->failed() || $response->json('status') !== 'success') {
+                throw new \Exception($this->extractErrorMessage($response, 'Erro ao testar comunicação com o aparelho.', $url));
+            }
+            return $response->json('data') ?? [];
+        } catch (ConnectionException $e) {
+            throw new \Exception("Não foi possível conectar ao serviço Python em {$url}.", 0, $e);
+        }
+    }
 }

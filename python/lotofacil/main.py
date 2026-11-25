@@ -485,6 +485,167 @@ class BotConciliarRequest(BaseModel):
     jogos: list[list[int]]
     lidos: list[list[int]]
 
+class AdbPairRequest(BaseModel):
+    ip: str
+    porta: str
+    codigo: str
+
+class AdbConnectRequest(BaseModel):
+    ip: str
+    porta: str
+
+class AdbSerialRequest(BaseModel):
+    serial: str | None = None
+
+def _listar_dispositivos_adb() -> list[dict]:
+    import subprocess
+    res = subprocess.run(["adb", "devices", "-l"], capture_output=True, text=True, timeout=10)
+    dispositivos = []
+    for line in (res.stdout or "").splitlines():
+        line = line.strip()
+        if not line or line.startswith("List of devices") or line.startswith("*"):
+            continue
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        serial = parts[0]
+        state = parts[1]
+        meta = {}
+        for token in parts[2:]:
+            if ":" in token:
+                k, v = token.split(":", 1)
+                meta[k] = v
+        dispositivos.append({
+            "serial": serial,
+            "status": state,
+            "model": meta.get("model", ""),
+            "device": meta.get("device", ""),
+            "product": meta.get("product", ""),
+        })
+    return dispositivos
+
+@app.get("/bot/adb/devices")
+def api_bot_adb_devices():
+    try:
+        dispositivos = _listar_dispositivos_adb()
+        return {"status": "success", "data": {"devices": dispositivos}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e) or repr(e))
+
+@app.post("/bot/adb/pair")
+def api_bot_adb_pair(req: AdbPairRequest):
+    import subprocess
+    ip = req.ip.strip()
+    porta = req.porta.strip()
+    codigo = req.codigo.strip()
+    if not ip or not porta or not codigo:
+        raise HTTPException(status_code=400, detail="Informe IP, porta de pareamento e código de 6 dígitos.")
+    try:
+        target = f"{ip}:{porta}"
+        res = subprocess.run(["adb", "pair", target, codigo], capture_output=True, text=True, timeout=20)
+        saida = ((res.stdout or "") + "\n" + (res.stderr or "")).strip()
+        sucesso = res.returncode == 0 and ("successfully paired" in saida.lower() or "paired to" in saida.lower())
+        return {
+            "status": "success",
+            "data": {
+                "sucesso": sucesso,
+                "saida": saida or "Sem saída do ADB.",
+                "target": target,
+            }
+        }
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="Tempo esgotado ao parear com o celular. Verifique se IP, porta e código estão corretos e na mesma rede Wi-Fi.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e) or repr(e))
+
+@app.post("/bot/adb/connect")
+def api_bot_adb_connect(req: AdbConnectRequest):
+    import subprocess
+    ip = req.ip.strip()
+    porta = req.porta.strip()
+    if not ip or not porta:
+        raise HTTPException(status_code=400, detail="Informe IP e porta de conexão.")
+    try:
+        target = f"{ip}:{porta}"
+        res = subprocess.run(["adb", "connect", target], capture_output=True, text=True, timeout=15)
+        saida = ((res.stdout or "") + "\n" + (res.stderr or "")).strip()
+        sucesso = res.returncode == 0 and ("connected to" in saida.lower() or "already connected" in saida.lower())
+        return {
+            "status": "success",
+            "data": {
+                "sucesso": sucesso,
+                "saida": saida or "Sem saída do ADB.",
+                "target": target,
+                "devices": _listar_dispositivos_adb(),
+            }
+        }
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="Tempo esgotado ao conectar no celular via ADB.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e) or repr(e))
+
+@app.post("/bot/adb/disconnect")
+def api_bot_adb_disconnect(req: AdbSerialRequest):
+    import subprocess
+    try:
+        cmd = ["adb", "disconnect", req.serial.strip()] if (req.serial and req.serial.strip()) else ["adb", "disconnect"]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        saida = ((res.stdout or "") + "\n" + (res.stderr or "")).strip()
+        return {
+            "status": "success",
+            "data": {
+                "sucesso": res.returncode == 0,
+                "saida": saida or "Desconectado.",
+                "devices": _listar_dispositivos_adb(),
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e) or repr(e))
+
+@app.post("/bot/adb/test")
+def api_bot_adb_test(req: AdbSerialRequest):
+    try:
+        import uiautomator2 as u2
+        dispositivos = _listar_dispositivos_adb()
+        ativos = [d for d in dispositivos if d["status"] == "device"]
+        serial = req.serial.strip() if (req.serial and req.serial.strip()) else (ativos[0]["serial"] if ativos else None)
+
+        if not serial:
+            return {
+                "status": "success",
+                "data": {
+                    "sucesso": False,
+                    "saida": "Nenhum dispositivo online encontrado via ADB.",
+                    "devices": dispositivos,
+                }
+            }
+
+        d = u2.connect(serial)
+        info = d.info or {}
+        return {
+            "status": "success",
+            "data": {
+                "sucesso": True,
+                "serial": serial,
+                "model": info.get("productName") or info.get("model") or serial,
+                "screen_on": bool(info.get("screenOn", True)),
+                "width": info.get("displayWidth"),
+                "height": info.get("displayHeight"),
+                "current_package": info.get("currentPackageName"),
+                "saida": f"Conectado com sucesso em {serial}!",
+                "devices": dispositivos,
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "success",
+            "data": {
+                "sucesso": False,
+                "saida": f"Falha ao comunicar com o aparelho via uiautomator2: {e}",
+                "devices": _listar_dispositivos_adb(),
+            }
+        }
+
 @app.post("/bot/ir-para-carrinho")
 def api_bot_ir_para_carrinho(model_type: str = "lotofacil"):
     try:
